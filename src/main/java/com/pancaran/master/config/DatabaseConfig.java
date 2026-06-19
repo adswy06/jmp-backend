@@ -112,11 +112,14 @@ public class DatabaseConfig implements BeanDefinitionRegistryPostProcessor, Envi
             String emfName = dbName + "EntityManagerFactory";
             String tmName = dbName + "TransactionManager";
 
-            BeanDefinitionBuilder emfBuilder = BeanDefinitionBuilder.genericBeanDefinition(LocalContainerEntityManagerFactoryBean.class);
+            BeanDefinitionBuilder emfBuilder =
+                    BeanDefinitionBuilder.genericBeanDefinition(LocalContainerEntityManagerFactoryBean.class);
+
             emfBuilder.addPropertyValue("dataSource", new RuntimeBeanReference(dsName));
             emfBuilder.addPropertyValue("packagesToScan", "com.pancaran.master.feature");
             emfBuilder.addPropertyValue("jpaVendorAdapter", new HibernateJpaVendorAdapter());
-            
+            emfBuilder.addPropertyValue("persistenceUnitName", dbName);
+
             Map<String, Object> jpaProperties = new HashMap<>();
             jpaProperties.put("hibernate.hbm2ddl.auto", "none");
             emfBuilder.addPropertyValue("jpaPropertyMap", jpaProperties);

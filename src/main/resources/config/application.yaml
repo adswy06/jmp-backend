@@ -2,6 +2,8 @@
 # SERVER CONFIGURATION
 # ===================================================================
 server:
+  servlet:
+    context-path: /api
   port: 8081
 
 # ===================================================================
@@ -22,7 +24,7 @@ spring:
       password: admin
       driver-class-name: org.postgresql.Driver
       flyway:
-        enabled: true        # Set to true to execute migrations on Master DB on startup
+        enabled: false        # Set to true to execute migrations on Master DB on startup
         locations: classpath:db/migration/master
 
     # 2. Testing Database Configuration
@@ -32,8 +34,19 @@ spring:
       password: admin
       driver-class-name: org.postgresql.Driver
       flyway:
-        enabled: true        # Set to true to execute migrations on Testing DB on startup
+        enabled: false        # Set to true to execute migrations on Testing DB on startup
         locations: classpath:db/migration/secondary
+
+    # 3. JMP Database Configuration
+    jmp-db:
+      jdbc-url: jdbc:postgresql://localhost:5434/jmp
+      username: admin
+      password: admin
+      driver-class-name: org.postgresql.Driver
+      flyway:
+        enabled: true        # Set to true to execute migrations on Testing DB on startup
+        locations: classpath:db/migration/jmp
+
 
 # ===================================================================
 # SYSTEM LOGGING CONFIGURATION
