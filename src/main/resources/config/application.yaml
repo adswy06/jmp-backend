@@ -47,6 +47,18 @@ spring:
         enabled: true        # Set to true to execute migrations on Testing DB on startup
         locations: classpath:db/migration/jmp
 
+    # 4. Wilayah Database Configuration
+    wilayah-db:
+      jdbc-url: jdbc:postgresql://localhost:5434/jmp
+      username: admin
+      password: admin
+      driver-class-name: org.postgresql.Driver
+      flyway:
+        enabled: true        # Set to true to execute migrations on Wilayah DB on startup
+        locations: classpath:db/migration/wilayah
+        table: flyway_wilayah_history
+        default-schema: wilayah
+
 
 # ===================================================================
 # SYSTEM LOGGING CONFIGURATION

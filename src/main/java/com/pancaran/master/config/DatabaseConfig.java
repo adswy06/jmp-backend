@@ -71,14 +71,50 @@ public class DatabaseConfig implements BeanDefinitionRegistryPostProcessor, Envi
 
             // 1. DataSource Registration
             BeanDefinitionBuilder dsBuilder = BeanDefinitionBuilder.genericBeanDefinition(DataSource.class, () -> {
+//                HikariDataSource ds = new HikariDataSource();
+//                String url = (String) dbProps.getOrDefault("jdbc-url", dbProps.get("url"));
+//                ds.setJdbcUrl(url);
+//                ds.setUsername((String) dbProps.get("username"));
+//                ds.setPassword((String) dbProps.get("password"));
+//                ds.setDriverClassName((String) dbProps.get("driver-class-name"));
+//                ds.setInitializationFailTimeout(1);
+//                ds.setConnectionTestQuery("SELECT 1");
+//                return ds;
+
                 HikariDataSource ds = new HikariDataSource();
+
                 String url = (String) dbProps.getOrDefault("jdbc-url", dbProps.get("url"));
+
+                if (!url.contains("reWriteBatchedInserts")) {
+                    url += (url.contains("?") ? "&" : "?") + "reWriteBatchedInserts=true";
+                }
+
                 ds.setJdbcUrl(url);
                 ds.setUsername((String) dbProps.get("username"));
                 ds.setPassword((String) dbProps.get("password"));
                 ds.setDriverClassName((String) dbProps.get("driver-class-name"));
+
+                ds.setPoolName(dbName + "-pool");
+
+                ds.setMaximumPoolSize(20);
+                ds.setMinimumIdle(5);
+
+                ds.setIdleTimeout(300_000);
+                ds.setMaxLifetime(1_800_000);
+
+                ds.setConnectionTimeout(30_000);
+                ds.setValidationTimeout(5_000);
+
+                ds.setAutoCommit(false);
+
                 ds.setInitializationFailTimeout(1);
                 ds.setConnectionTestQuery("SELECT 1");
+
+                // PostgreSQL optimization
+                ds.addDataSourceProperty("reWriteBatchedInserts", "true");
+                ds.addDataSourceProperty("prepareThreshold", "3");
+                ds.addDataSourceProperty("binaryTransfer", "true");
+
                 return ds;
             });
             registry.registerBeanDefinition(dsName, dsBuilder.getBeanDefinition());
@@ -97,10 +133,12 @@ public class DatabaseConfig implements BeanDefinitionRegistryPostProcessor, Envi
                     boolean isEnabled = Boolean.TRUE.equals(enabledObj) || "true".equalsIgnoreCase(String.valueOf(enabledObj));
                     if (isEnabled) {
                         String locations = (String) flywayProps.getOrDefault("locations", "classpath:db/migration/" + dbName);
+                        String tableName = (String) flywayProps.get("table");
+                        String defaultSchema = (String) flywayProps.get("default-schema");
 
                         registry.registerBeanDefinition(dbName + "Flyway", BeanDefinitionBuilder.genericBeanDefinition(Flyway.class, () -> {
                             DataSource ds = applicationContext.getBean(dsName, DataSource.class);
-                            Flyway flyway = DatabaseHelper.createFlyway(ds, locations);
+                            Flyway flyway = DatabaseHelper.createFlyway(ds, locations, tableName, defaultSchema);
                             flyway.migrate(); // Run migration directly on instantiation
                             return flyway;
                         }).getBeanDefinition());
@@ -120,9 +158,49 @@ public class DatabaseConfig implements BeanDefinitionRegistryPostProcessor, Envi
             emfBuilder.addPropertyValue("jpaVendorAdapter", new HibernateJpaVendorAdapter());
             emfBuilder.addPropertyValue("persistenceUnitName", dbName);
 
+//            Map<String, Object> jpaProperties = new HashMap<>();
+//            jpaProperties.put("hibernate.hbm2ddl.auto", "none");
+//            emfBuilder.addPropertyValue("jpaPropertyMap", jpaProperties);
+
             Map<String, Object> jpaProperties = new HashMap<>();
+
             jpaProperties.put("hibernate.hbm2ddl.auto", "none");
-            emfBuilder.addPropertyValue("jpaPropertyMap", jpaProperties);
+            jpaProperties.put(
+                    "jakarta.persistence.validation.mode",
+                    "none");
+
+            // Batch Insert
+            jpaProperties.put("hibernate.jdbc.batch_size", "100");
+            jpaProperties.put("hibernate.order_inserts", "true");
+            jpaProperties.put("hibernate.order_updates", "true");
+            jpaProperties.put("hibernate.jdbc.batch_versioned_data", "true");
+
+            // Fetch
+            jpaProperties.put("hibernate.default_batch_fetch_size", "100");
+            jpaProperties.put("hibernate.jdbc.fetch_size", "100");
+
+            // Performance
+            jpaProperties.put("hibernate.generate_statistics", "false");
+            jpaProperties.put("hibernate.jdbc.time_zone", "Asia/Jakarta");
+            jpaProperties.put("hibernate.query.in_clause_parameter_padding", "true");
+            jpaProperties.put("hibernate.connection.provider_disables_autocommit", "true");
+
+            // SQL
+            jpaProperties.put("hibernate.show_sql", "false");
+            jpaProperties.put("hibernate.format_sql", "false");
+            jpaProperties.put("hibernate.highlight_sql", "false");
+
+//            emfBuilder.addPropertyValue("jpaPropertyMap", jpaProperties);
+
+            HibernateJpaVendorAdapter adapter =
+                    new HibernateJpaVendorAdapter();
+
+            adapter.setGenerateDdl(false);
+            adapter.setShowSql(false);
+
+            emfBuilder.addPropertyValue(
+                    "jpaVendorAdapter",
+                    adapter);
 
             registry.registerBeanDefinition(emfName, emfBuilder.getBeanDefinition());
 

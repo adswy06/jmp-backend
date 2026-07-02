@@ -1,0 +1,112 @@
+{
+    "name": "Jakarta - Surabaya Main Route (Direct Toll - Updated)",
+    "alias": "JKT-SUB-MIX-ROUTE",
+    "routePoints": [
+        {
+            "poiId": "11111111-1111-1111-1111-111111111111",
+            "seqNo": 1,
+            "alias": "Jakarta Warehouse Area",
+            "address": "Tanjung Priok, DKI Jakarta",
+            "geofence": [
+                {
+                    "shapeType": "ZONE",
+                    "radius": 0,
+                    "paths": {
+                        "zoneId": "JKT-ZONE",
+                        "encodePolyline": "encoded_polygon_bounds_jakarta_zone"
+                    }
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                    "leadTime": 60,
+                    "amount": 150000,
+                    "extraCost": [
+                        {
+                            "name": "Administrasi Gudang",
+                            "amount": 30000
+                        }
+                    ]
+                }
+            ],
+            "paths": {
+                "encodePolyline": "encoded_polyline_jakarta_to_surabaya_direct_toll",
+                "steps": [
+                    {
+                        "seqNo": 1,
+                        "instruction": "Masuk Gerbang Tol Sunter",
+                        "maneuver": "merge",
+                        "distanceMeter": 1500,
+                        "durationSecond": 120,
+                        "encodePolyline": "sunter_toll_in_polyline"
+                    },
+                    {
+                        "seqNo": 2,
+                        "instruction": "Lurus terus di Tol Trans-Jawa Jakarta-Surabaya",
+                        "maneuver": "straight",
+                        "distanceMeter": 780000,
+                        "durationSecond": 28800,
+                        "encodePolyline": "trans_java_toll_polyline"
+                    },
+                    {
+                        "seqNo": 3,
+                        "instruction": "Keluar Gerbang Tol Waru",
+                        "maneuver": "ramp-right",
+                        "distanceMeter": 1200,
+                        "durationSecond": 180,
+                        "encodePolyline": "waru_toll_exit"
+                    }
+                ]
+            }
+        },
+        {
+            "poiId": "44444444-4444-4444-4444-444444444444",
+            "seqNo": 2,
+            "alias": "Surabaya Distribution Center",
+            "address": "Tanjung Perak, Surabaya, Jawa Timur",
+            "geofence": [
+                {
+                    "shapeType": "ZONE",
+                    "radius": 0,
+                    "paths": {
+                        "zoneId": "SUB-ZONE",
+                        "encodePolyline": "encoded_polygon_bounds_surabaya_zone"
+                    }
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+                    "leadTime": 180,
+                    "amount": 280000,
+                    "extraCost": [
+                        {
+                            "name": "Bongkar Muat Cepat",
+                            "amount": 200000
+                        }
+                    ]
+                }
+            ],
+            "paths": null
+        }
+    ],
+    "routeDetails": [
+        {
+            "seqNo": 1,
+            "startSeqNo": 1,
+            "endSeqNo": 2,
+            "remarks": "Jakarta to Surabaya Direct - Via Trans-Java Toll Road",
+            "units": [
+                {
+                    "unitTypeId": "UNIT-WINGBOX",
+                    "description": "Truck Trailer 20 Ton Wingbox"
+                },
+                {
+                    "unitTypeId": "UNIT-40FT",
+                    "description": "Truck Trailer 40 Feet"
+                }
+            ]
+        }
+    ]
+}

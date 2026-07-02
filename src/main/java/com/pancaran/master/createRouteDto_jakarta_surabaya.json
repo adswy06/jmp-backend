@@ -1,0 +1,243 @@
+{
+    "name": "Jakarta - Surabaya Main Route (Toll & Pantura)",
+    "alias": "JKT-SUB-MIX-ROUTE",
+    "routePoints": [
+        {
+            "poiId": "11111111-1111-1111-1111-111111111111",
+            "seqNo": 1,
+            "alias": "Jakarta Warehouse Area",
+            "address": "Tanjung Priok, DKI Jakarta",
+            "geofence": [
+                {
+                    "shapeType": "ZONE",
+                    "radius": 0,
+                    "paths": {
+                        "zoneId": "JKT-ZONE",
+                        "encodePolyline": "encoded_polygon_bounds_jakarta_zone"
+                    }
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                    "leadTime": 60,
+                    "amount": 120000,
+                    "extraCost": [
+                        {
+                            "name": "Administrasi Gudang",
+                            "amount": 25000
+                        }
+                    ]
+                }
+            ],
+            "paths": {
+                "encodePolyline": "encoded_polyline_jakarta_to_cikampek_via_toll",
+                "steps": [
+                    {
+                        "seqNo": 1,
+                        "instruction": "Masuk Gerbang Tol Sunter",
+                        "maneuver": "merge",
+                        "distanceMeter": 1500,
+                        "durationSecond": 120,
+                        "encodePolyline": "sunter_toll_in_polyline"
+                    },
+                    {
+                        "seqNo": 2,
+                        "instruction": "Lurus di Tol Jakarta-Cikampek",
+                        "maneuver": "straight",
+                        "distanceMeter": 72000,
+                        "durationSecond": 2700,
+                        "encodePolyline": "jkt_cikampek_toll_polyline"
+                    },
+                    {
+                        "seqNo": 3,
+                        "instruction": "Keluar Tol Cikampek Utama",
+                        "maneuver": "ramp-left",
+                        "distanceMeter": 500,
+                        "durationSecond": 60,
+                        "encodePolyline": "cikampek_toll_out_polyline"
+                    }
+                ]
+            }
+        },
+        {
+            "poiId": "22222222-2222-2222-2222-222222222222",
+            "seqNo": 2,
+            "alias": "Cikampek Interchange Point",
+            "address": "Cikampek, Jawa Barat",
+            "geofence": [
+                {
+                    "shapeType": "RADIUS",
+                    "radius": 150,
+                    "paths": {
+                        "center": {
+                            "lat": -6.3900,
+                            "lng": 107.4580
+                        }
+                    }
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+                    "leadTime": 30,
+                    "amount": 40000,
+                    "extraCost": []
+                }
+            ],
+            "paths": {
+                "encodePolyline": "encoded_polyline_cikampek_to_semarang_via_pantura_non_toll",
+                "steps": [
+                    {
+                        "seqNo": 1,
+                        "instruction": "Lanjut ke Jalan Raya Pantura",
+                        "maneuver": "straight",
+                        "distanceMeter": 180000,
+                        "durationSecond": 14400,
+                        "encodePolyline": "pantura_main_road_polyline"
+                    },
+                    {
+                        "seqNo": 2,
+                        "instruction": "Masuk Batas Kota Semarang",
+                        "maneuver": "straight",
+                        "distanceMeter": 25000,
+                        "durationSecond": 1800,
+                        "encodePolyline": "semarang_entrance_polyline"
+                    }
+                ]
+            }
+        },
+        {
+            "poiId": "33333333-3333-3333-3333-333333333333",
+            "seqNo": 3,
+            "alias": "Semarang City Waypoint",
+            "address": "Semarang, Jawa Tengah",
+            "geofence": [
+                {
+                    "shapeType": "RADIUS",
+                    "radius": 100,
+                    "paths": {
+                        "center": {
+                            "lat": -6.9932,
+                            "lng": 110.4203
+                        }
+                    }
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                    "leadTime": 45,
+                    "amount": 75000,
+                    "extraCost": [
+                        {
+                            "name": "Retribusi Semarang",
+                            "amount": 10000
+                        }
+                    ]
+                }
+            ],
+            "paths": {
+                "encodePolyline": "encoded_polyline_semarang_to_surabaya_via_toll",
+                "steps": [
+                    {
+                        "seqNo": 1,
+                        "instruction": "Masuk Gerbang Tol Muktiharjo",
+                        "maneuver": "merge",
+                        "distanceMeter": 2000,
+                        "durationSecond": 150,
+                        "encodePolyline": "muktiharjo_toll_in"
+                    },
+                    {
+                        "seqNo": 2,
+                        "instruction": "Melaju di Tol Trans-Jawa Semarang-Surabaya",
+                        "maneuver": "straight",
+                        "distanceMeter": 310000,
+                        "durationSecond": 10800,
+                        "encodePolyline": "semarang_sub_toll_main"
+                    },
+                    {
+                        "seqNo": 3,
+                        "instruction": "Keluar Gerbang Tol Waru",
+                        "maneuver": "ramp-right",
+                        "distanceMeter": 1200,
+                        "durationSecond": 180,
+                        "encodePolyline": "waru_toll_exit"
+                    }
+                ]
+            }
+        },
+        {
+            "poiId": "44444444-4444-4444-4444-444444444444",
+            "seqNo": 4,
+            "alias": "Surabaya Distribution Center",
+            "address": "Tanjung Perak, Surabaya, Jawa Timur",
+            "geofence": [
+                {
+                    "shapeType": "ZONE",
+                    "radius": 0,
+                    "paths": {
+                        "zoneId": "SUB-ZONE",
+                        "encodePolyline": "encoded_polygon_bounds_surabaya_zone"
+                    }
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+                    "leadTime": 180,
+                    "amount": 250000,
+                    "extraCost": [
+                        {
+                            "name": "Bongkar Muat",
+                            "amount": 150000
+                        }
+                    ]
+                }
+            ],
+            "paths": null
+        }
+    ],
+    "routeDetails": [
+        {
+            "seqNo": 1,
+            "startSeqNo": 1,
+            "endSeqNo": 2,
+            "remarks": "Jakarta to Cikampek - Via Toll Road",
+            "units": [
+                {
+                    "unitTypeId": "UNIT-WINGBOX",
+                    "description": "Truck Trailer 20 Ton Wingbox"
+                }
+            ]
+        },
+        {
+            "seqNo": 2,
+            "startSeqNo": 2,
+            "endSeqNo": 3,
+            "remarks": "Cikampek to Semarang - Via Non-Toll (Pantura)",
+            "units": [
+                {
+                    "unitTypeId": "UNIT-WINGBOX",
+                    "description": "Truck Trailer 20 Ton Wingbox"
+                },
+                {
+                    "unitTypeId": "UNIT-COLT-DIESEL",
+                    "description": "Colt Diesel Double"
+                }
+            ]
+        },
+        {
+            "seqNo": 3,
+            "startSeqNo": 3,
+            "endSeqNo": 4,
+            "remarks": "Semarang to Surabaya - Via Trans-Java Toll Road",
+            "units": [
+                {
+                    "unitTypeId": "UNIT-WINGBOX",
+                    "description": "Truck Trailer 20 Ton Wingbox"
+                }
+            ]
+        }
+    ]
+}

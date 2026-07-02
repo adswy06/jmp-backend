@@ -10,11 +10,22 @@ import java.sql.Connection;
 public class DatabaseHelper {
 
     public static Flyway createFlyway(DataSource dataSource, String locations) {
-        return Flyway.configure()
+        return createFlyway(dataSource, locations, null, null);
+    }
+
+    public static Flyway createFlyway(DataSource dataSource, String locations, String tableName, String defaultSchema) {
+        org.flywaydb.core.api.configuration.FluentConfiguration config = Flyway.configure()
                 .dataSource(dataSource)
                 .locations(locations)
                 .baselineOnMigrate(true)
-                .load();
+                .outOfOrder(true);
+        if (tableName != null && !tableName.trim().isEmpty()) {
+            config.table(tableName);
+        }
+        if (defaultSchema != null && !defaultSchema.trim().isEmpty()) {
+            config.defaultSchema(defaultSchema);
+        }
+        return config.load();
     }
 
     public static void testConnection(DataSource ds, String dbName) {

@@ -1,0 +1,247 @@
+{
+    "name": "Jakarta - Karawang Full Container",
+    "alias": "JKT-KRW-FCL",
+    "routePoints": [
+        {
+            "poiId": "11111111-1111-1111-1111-111111111111",
+            "seqNo": 1,
+            "alias": "Depo Container Cakung",
+            "address": "Jl. Raya Cakung Cilincing, Jakarta",
+            "geofence": [
+                {
+                    "shapeType": "RADIUS",
+                    "radius": 100,
+                    "paths": {
+                        "center": {
+                            "lat": -6.1803,
+                            "lng": 106.9418
+                        }
+                    }
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                    "leadTime": 45,
+                    "amount": 50000,
+                    "extraCost": [
+                        {
+                            "name": "Administrasi Depo",
+                            "amount": 75000
+                        }
+                    ]
+                }
+            ],
+            "paths": {
+                "encodePolyline": "encoded_polyline_depo_cy",
+                "steps": [
+                    {
+                        "seqNo": 1,
+                        "instruction": "Keluar dari Depo Container",
+                        "maneuver": "depart",
+                        "distanceMeter": 300,
+                        "durationSecond": 60,
+                        "encodePolyline": "step1_polyline"
+                    },
+                    {
+                        "seqNo": 2,
+                        "instruction": "Belok kiri ke Jalan Yos Sudarso",
+                        "maneuver": "turn-left",
+                        "distanceMeter": 4200,
+                        "durationSecond": 480,
+                        "encodePolyline": "step2_polyline"
+                    },
+                    {
+                        "seqNo": 3,
+                        "instruction": "Masuk CY Tanjung Priok",
+                        "maneuver": "arrive",
+                        "distanceMeter": 7300,
+                        "durationSecond": 960,
+                        "encodePolyline": "step3_polyline"
+                    }
+                ]
+            }
+        },
+        {
+            "poiId": "22222222-2222-2222-2222-222222222222",
+            "seqNo": 2,
+            "alias": "CY Tanjung Priok",
+            "address": "Pelabuhan Tanjung Priok",
+            "geofence": [
+                {
+                    "shapeType": "POLYGON",
+                    "radius": 0,
+                    "paths": "encoded_polyline_of_polygon"
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                    "leadTime": 120,
+                    "amount": 350000,
+                    "extraCost": [
+                        {
+                            "name": "Pelabuhan",
+                            "amount": 95000
+                        },
+                        {
+                            "name": "Lift On",
+                            "amount": 150000
+                        }
+                    ]
+                }
+            ],
+            "paths": {
+                "encodePolyline": "encoded_polyline_cy_wh",
+                "steps": [
+                    {
+                        "seqNo": 1,
+                        "instruction": "Keluar Pelabuhan",
+                        "maneuver": "depart",
+                        "distanceMeter": 500,
+                        "durationSecond": 120,
+                        "encodePolyline": "step1_polyline"
+                    },
+                    {
+                        "seqNo": 2,
+                        "instruction": "Masuk Tol Jakarta Cikampek",
+                        "maneuver": "merge",
+                        "distanceMeter": 26000,
+                        "durationSecond": 2700,
+                        "encodePolyline": "step2_polyline"
+                    },
+                    {
+                        "seqNo": 3,
+                        "instruction": "Keluar Tol Bekasi Barat",
+                        "maneuver": "ramp-right",
+                        "distanceMeter": 4000,
+                        "durationSecond": 480,
+                        "encodePolyline": "step3_polyline"
+                    }
+                ]
+            }
+        },
+        {
+            "poiId": "33333333-3333-3333-3333-333333333333",
+            "seqNo": 3,
+            "alias": "Warehouse Bekasi",
+            "address": "MM2100 Bekasi",
+            "geofence": [
+                {
+                    "shapeType": "RADIUS",
+                    "radius": 120,
+                    "paths": {
+                        "center": {
+                            "lat": -6.2551,
+                            "lng": 107.0153
+                        }
+                    }
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+                    "leadTime": 90,
+                    "amount": 125000,
+                    "extraCost": [
+                        {
+                            "name": "Forklift",
+                            "amount": 35000
+                        }
+                    ]
+                }
+            ],
+            "paths": {
+                "encodePolyline": "encoded_polyline_wh_factory",
+                "steps": [
+                    {
+                        "seqNo": 1,
+                        "instruction": "Keluar Warehouse",
+                        "maneuver": "depart",
+                        "distanceMeter": 400,
+                        "durationSecond": 60,
+                        "encodePolyline": "step1_polyline"
+                    },
+                    {
+                        "seqNo": 2,
+                        "instruction": "Belok kanan ke Jalan Industri",
+                        "maneuver": "turn-right",
+                        "distanceMeter": 1200,
+                        "durationSecond": 180,
+                        "encodePolyline": "step2_polyline"
+                    },
+                    {
+                        "seqNo": 3,
+                        "instruction": "Lanjut menuju KIIC Karawang",
+                        "maneuver": "straight",
+                        "distanceMeter": 19000,
+                        "durationSecond": 1800,
+                        "encodePolyline": "step3_polyline"
+                    }
+                ]
+            }
+        },
+        {
+            "poiId": "44444444-4444-4444-4444-444444444444",
+            "seqNo": 4,
+            "alias": "Pabrik Karawang",
+            "address": "KIIC Karawang",
+            "geofence": [
+                {
+                    "shapeType": "ZONE",
+                    "radius": 0,
+                    "paths": {
+                        "zoneId": "KIIC-KRW"
+                    }
+                }
+            ],
+            "activities": [
+                {
+                    "activityId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+                    "leadTime": 180,
+                    "amount": 150000,
+                    "extraCost": []
+                }
+            ],
+            "paths": null
+        }
+    ],
+    "routeDetails": [
+        {
+            "seqNo": 1,
+            "startSeqNo": 1,
+            "endSeqNo": 2,
+            "remarks": "Empty Container",
+            "units": [
+                {
+                    "unitTypeId": "UNIT-20FT",
+                    "description": "Truck Trailer 20 Feet"
+                }
+            ]
+        },
+        {
+            "seqNo": 2,
+            "startSeqNo": 2,
+            "endSeqNo": 3,
+            "remarks": "Full Container",
+            "units": [
+                {
+                    "unitTypeId": "UNIT-40FT",
+                    "description": "Truck Trailer 40 Feet"
+                }
+            ]
+        },
+        {
+            "seqNo": 3,
+            "startSeqNo": 3,
+            "endSeqNo": 4,
+            "remarks": "Wingbox Delivery",
+            "units": [
+                {
+                    "unitTypeId": "UNIT-WINGBOX",
+                    "description": "Wingbox 20 Ton"
+                }
+            ]
+        }
+    ]
+}

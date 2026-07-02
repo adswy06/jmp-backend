@@ -1,5 +1,0 @@
-ALTER TABLE m_route
-ALTER COLUMN location_from_id TYPE VARCHAR(40);
-
-ALTER TABLE m_route
-ALTER COLUMN location_to_id TYPE VARCHAR(40);
