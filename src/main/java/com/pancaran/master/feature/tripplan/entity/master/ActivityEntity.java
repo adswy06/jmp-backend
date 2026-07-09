@@ -25,6 +25,11 @@ public class ActivityEntity {
 
     private String name;
 
+    private java.math.BigDecimal cost;
+
+    @Column(name = "lead_time")
+    private Integer leadTime;
+
     @ManyToMany(mappedBy = "activities")
     @JsonIgnore
     private Set<LocationCategoryEntity> locationCategories = new HashSet<>();

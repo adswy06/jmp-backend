@@ -1,6 +1,6 @@
 package com.pancaran.master.feature.tripplan.service.enricher;
 
-import com.pancaran.master.feature.region.repository.RegionRepository;
+import com.pancaran.master.feature.region.repository.RegionJdbcRepository;
 import com.pancaran.master.feature.tripplan.entity.master.PoiEntity;
 import com.pancaran.master.feature.tripplan.entity.transaction.GeofenceEntity;
 import com.pancaran.master.feature.tripplan.entity.transaction.RoutePointEntity;
@@ -10,8 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.security.MessageDigest;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -19,7 +18,7 @@ import java.util.stream.Collectors;
 public class PlaningEnricher {
 
     private final RouteRepository routeRepository;
-    private final RegionRepository regionRepository;
+    private final RegionJdbcRepository regionJdbcRepository;
 
     public void enrich(RouteAggregate aggregate) {
         List<RoutePointEntity> routePoints = aggregate.getRoutePoints();
@@ -29,7 +28,7 @@ public class PlaningEnricher {
 
         // Enrich POIs from wilayah before routePoint enrichment
         if (aggregate.getPois() != null) {
-            List<String> codesToEnrich = new java.util.ArrayList<>();
+            List<String> codesToEnrich = new ArrayList<>();
             for (PoiEntity poi : aggregate.getPois()) {
                 if (poi.getName() == null || poi.getName().trim().isEmpty() || poi.getLat() == null || poi.getLng() == null) {
                     String code = poi.getRegionCode();
@@ -44,9 +43,9 @@ public class PlaningEnricher {
                         .distinct()
                         .collect(Collectors.groupingBy(String::length));
 
-                Map<String, Object[]> detailsMap = new java.util.HashMap<>();
+                Map<String, Object[]> detailsMap = new HashMap<>();
                 for (Map.Entry<Integer, List<String>> entry : groupedByLength.entrySet()) {
-                    List<Object[]> results = regionRepository.findRegionDetailsByCodes(entry.getValue(), entry.getKey());
+                    List<Object[]> results = regionJdbcRepository.findRegionDetailsByCodes(entry.getValue(), entry.getKey());
                     for (Object[] row : results) {
                         if (row != null && row.length >= 4) {
                             detailsMap.put((String) row[0], row);
@@ -99,7 +98,7 @@ public class PlaningEnricher {
                 ? aggregate.getGeofences().stream()
                         .filter(g -> g.getPoiId() != null)
                         .collect(Collectors.groupingBy(GeofenceEntity::getPoiId))
-                : java.util.Map.of();
+                : Map.of();
 
         for (RoutePointEntity point : routePoints) {
             PoiEntity poi = poiMap.get(point.getPoiId());

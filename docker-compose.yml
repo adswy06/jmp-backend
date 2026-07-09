@@ -1,0 +1,14 @@
+services:
+  api:
+    image: registry.pancaran-group.co.id:5000/jmp-apps:1.0.0_dev1
+    container_name: jmp-apps
+    restart: always
+    volumes:
+      - ./config:/app/config:z
+      - ./logs:/logs:z
+    logging:
+      driver: json-file
+    ports:
+      - "8081:8081"
+    environment:
+      - TZ=Asia/Jakarta

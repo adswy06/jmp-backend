@@ -2,6 +2,7 @@
 # SERVER CONFIGURATION
 # ===================================================================
 server:
+  forward-headers-strategy: framework
   servlet:
     context-path: /api
   port: 8081
@@ -17,31 +18,12 @@ spring:
   # MULTI-DATASOURCE & MIGRATION CONFIGURATIONS (PostgreSQL)
   # ===================================================================
   datasource:
-    # 1. Master Database Configuration
-    master-db:
-      jdbc-url: jdbc:postgresql://localhost:5432/master
-      username: admin
-      password: admin
-      driver-class-name: org.postgresql.Driver
-      flyway:
-        enabled: false        # Set to true to execute migrations on Master DB on startup
-        locations: classpath:db/migration/master
-
-    # 2. Testing Database Configuration
-    testing-db:
-      jdbc-url: jdbc:postgresql://localhost:5433/testing
-      username: admin
-      password: admin
-      driver-class-name: org.postgresql.Driver
-      flyway:
-        enabled: false        # Set to true to execute migrations on Testing DB on startup
-        locations: classpath:db/migration/secondary
 
     # 3. JMP Database Configuration
     jmp-db:
-      jdbc-url: jdbc:postgresql://localhost:5434/jmp
-      username: admin
-      password: admin
+      jdbc-url: jdbc:postgresql://10.10.15.79:55434/dbhub_jmp
+      username: phubadm
+      password: zerosugar
       driver-class-name: org.postgresql.Driver
       flyway:
         enabled: true        # Set to true to execute migrations on Testing DB on startup
@@ -49,9 +31,9 @@ spring:
 
     # 4. Wilayah Database Configuration
     wilayah-db:
-      jdbc-url: jdbc:postgresql://localhost:5434/jmp
-      username: admin
-      password: admin
+      jdbc-url: jdbc:postgresql://10.10.15.79:55434/dbhub_jmp
+      username: phubadm
+      password: zerosugar
       driver-class-name: org.postgresql.Driver
       flyway:
         enabled: true        # Set to true to execute migrations on Wilayah DB on startup

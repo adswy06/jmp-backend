@@ -3,10 +3,13 @@ package com.pancaran.master.feature.region.service;
 import com.pancaran.master.feature.region.dto.*;
 import com.pancaran.master.feature.region.entity.*;
 import com.pancaran.master.feature.region.repository.RegionRepository;
+import com.pancaran.master.feature.region.repository.RegionJdbcRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -16,16 +19,17 @@ import java.util.stream.Collectors;
 public class RegionService {
 
     private final RegionRepository repository;
+    private final RegionJdbcRepository jdbcRepository;
 
     @Transactional(value = "wilayah-dbTransactionManager", readOnly = true, timeout = 5)
     public List<ProvinceDto> getProvinces(String name, boolean includeGeom) {
         List<ProvinceEntity> entities = repository.findProvinces(name);
-        java.util.Map<String, String> geomMap = java.util.Collections.emptyMap();
+        Map<String, String> geomMap = Collections.emptyMap();
         if (includeGeom && !entities.isEmpty()) {
             List<String> codes = entities.stream().map(ProvinceEntity::getKodeProv).collect(Collectors.toList());
-            geomMap = repository.findProvinceGeoms(codes);
+            geomMap = jdbcRepository.findProvinceGeoms(codes);
         }
-        final java.util.Map<String, String> finalGeomMap = geomMap;
+        final Map<String, String> finalGeomMap = geomMap;
         return entities.stream()
                 .map(entity -> toProvinceDto(entity, finalGeomMap.get(entity.getKodeProv())))
                 .collect(Collectors.toList());
@@ -33,7 +37,7 @@ public class RegionService {
 
     public Optional<ProvinceDto> getProvinceByCode(String code, boolean includeGeom) {
         return repository.findProvinceByCode(code).map(entity -> {
-            String geomJson = includeGeom ? repository.findProvinceGeom(code) : null;
+            String geomJson = includeGeom ? jdbcRepository.findProvinceGeom(code) : null;
             return toProvinceDto(entity, geomJson);
         });
     }
@@ -41,12 +45,12 @@ public class RegionService {
     @Transactional(value = "wilayah-dbTransactionManager", readOnly = true, timeout = 5)
     public List<RegencyDto> getRegencies(String provinceCode, String name, boolean includeGeom) {
         List<RegencyEntity> entities = repository.findRegencies(provinceCode, name);
-        java.util.Map<String, String> geomMap = java.util.Collections.emptyMap();
+        Map<String, String> geomMap = Collections.emptyMap();
         if (includeGeom && !entities.isEmpty()) {
             List<String> codes = entities.stream().map(RegencyEntity::getKodeKab).collect(Collectors.toList());
-            geomMap = repository.findRegencyGeoms(codes);
+            geomMap = jdbcRepository.findRegencyGeoms(codes);
         }
-        final java.util.Map<String, String> finalGeomMap = geomMap;
+        final Map<String, String> finalGeomMap = geomMap;
         return entities.stream()
                 .map(entity -> toRegencyDto(entity, finalGeomMap.get(entity.getKodeKab())))
                 .collect(Collectors.toList());
@@ -54,7 +58,7 @@ public class RegionService {
 
     public Optional<RegencyDto> getRegencyByCode(String code, boolean includeGeom) {
         return repository.findRegencyByCode(code).map(entity -> {
-            String geomJson = includeGeom ? repository.findRegencyGeom(code) : null;
+            String geomJson = includeGeom ? jdbcRepository.findRegencyGeom(code) : null;
             return toRegencyDto(entity, geomJson);
         });
     }
@@ -62,12 +66,12 @@ public class RegionService {
     @Transactional(value = "wilayah-dbTransactionManager", readOnly = true, timeout = 10)
     public List<DistrictDto> getDistricts(String regencyCode, String name, boolean includeGeom) {
         List<DistrictEntity> entities = repository.findDistricts(regencyCode, name);
-        java.util.Map<String, String> geomMap = java.util.Collections.emptyMap();
+        Map<String, String> geomMap = Collections.emptyMap();
         if (includeGeom && !entities.isEmpty()) {
             List<String> codes = entities.stream().map(DistrictEntity::getKodeKec).collect(Collectors.toList());
-            geomMap = repository.findDistrictGeoms(codes);
+            geomMap = jdbcRepository.findDistrictGeoms(codes);
         }
-        final java.util.Map<String, String> finalGeomMap = geomMap;
+        final Map<String, String> finalGeomMap = geomMap;
         return entities.stream()
                 .map(entity -> toDistrictDto(entity, finalGeomMap.get(entity.getKodeKec())))
                 .collect(Collectors.toList());
@@ -75,7 +79,7 @@ public class RegionService {
 
     public Optional<DistrictDto> getDistrictByCode(String code, boolean includeGeom) {
         return repository.findDistrictByCode(code).map(entity -> {
-            String geomJson = includeGeom ? repository.findDistrictGeom(code) : null;
+            String geomJson = includeGeom ? jdbcRepository.findDistrictGeom(code) : null;
             return toDistrictDto(entity, geomJson);
         });
     }
@@ -83,12 +87,12 @@ public class RegionService {
     @Transactional(value = "wilayah-dbTransactionManager", readOnly = true, timeout = 15)
     public List<VillageDto> getVillages(String districtCode, String name, boolean includeGeom) {
         List<VillageEntity> entities = repository.findVillages(districtCode, name);
-        java.util.Map<String, String> geomMap = java.util.Collections.emptyMap();
+        Map<String, String> geomMap = Collections.emptyMap();
         if (includeGeom && !entities.isEmpty()) {
             List<String> codes = entities.stream().map(VillageEntity::getKodeDesa).collect(Collectors.toList());
-            geomMap = repository.findVillageGeoms(codes);
+            geomMap = jdbcRepository.findVillageGeoms(codes);
         }
-        final java.util.Map<String, String> finalGeomMap = geomMap;
+        final Map<String, String> finalGeomMap = geomMap;
         return entities.stream()
                 .map(entity -> toVillageDto(entity, finalGeomMap.get(entity.getKodeDesa())))
                 .collect(Collectors.toList());
@@ -96,7 +100,7 @@ public class RegionService {
 
     public Optional<VillageDto> getVillageByCode(String code, boolean includeGeom) {
         return repository.findVillageByCode(code).map(entity -> {
-            String geomJson = includeGeom ? repository.findVillageGeom(code) : null;
+            String geomJson = includeGeom ? jdbcRepository.findVillageGeom(code) : null;
             return toVillageDto(entity, geomJson);
         });
     }
