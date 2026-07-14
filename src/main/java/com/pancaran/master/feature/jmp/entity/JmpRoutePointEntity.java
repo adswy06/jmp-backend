@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "t_jmp_route_point")
@@ -34,7 +36,7 @@ public class JmpRoutePointEntity {
     @Column(name = "iscustom")
     private Boolean isCustom;
 
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "json")
     private String paths;
 }

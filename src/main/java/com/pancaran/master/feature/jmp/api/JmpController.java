@@ -2,6 +2,7 @@ package com.pancaran.master.feature.jmp.api;
 
 import com.pancaran.master.common.APIResponse;
 import com.pancaran.master.feature.jmp.dto.JmpRequestDto;
+import com.pancaran.master.feature.jmp.dto.JmpResponseDto;
 import com.pancaran.master.feature.jmp.entity.JmpEntity;
 import com.pancaran.master.feature.jmp.service.JmpService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,5 +43,11 @@ public class JmpController {
         SearchInputImpl input = new SearchInputImpl(null, FeatureOperation.SEARCH);
         input.pageable(pageable, search, filter);
         return ResponseEntity.ok(service.getJmpPage(input));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get JMP by ID", description = "Retrieves the details of a single JMP by its ID including its full nested trip plans, units, route points, activities, segments, and transit details in an optimized fetch.")
+    public ResponseEntity<APIResponse<JmpResponseDto>> getJmpById(@PathVariable("id") String id) {
+        return ResponseEntity.ok(APIResponse.success(service.getJmpById(id)));
     }
 }

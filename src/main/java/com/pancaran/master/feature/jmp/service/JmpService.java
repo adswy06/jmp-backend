@@ -3,11 +3,17 @@ package com.pancaran.master.feature.jmp.service;
 import com.apik.core.common.helper.CoreUtil;
 import com.pancaran.master.feature.jmp.dto.JmpRequestDto;
 import com.pancaran.master.feature.jmp.dto.JmpTripPlanRequestDto;
+import com.pancaran.master.feature.jmp.dto.JmpResponseDto;
+import com.pancaran.master.common.ApiException;
 import org.springframework.data.domain.Page;
 import com.apik.core.data.dto.SearchInput;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pancaran.master.feature.jmp.entity.*;
 import com.pancaran.master.feature.jmp.repository.JmpRepository;
 import com.pancaran.master.feature.tripplan.entity.master.ActivityEntity;
+import com.pancaran.master.feature.tripplan.entity.master.PoiEntity;
+import com.pancaran.master.feature.tripplan.repository.RouteRepository;
+import com.pancaran.master.feature.tripplan.service.PlaningService;
 import com.pancaran.master.feature.tripplan.entity.transaction.RoutePointEntity;
 import com.pancaran.master.feature.tripplan.entity.transaction.ActivityCostEntity;
 import com.pancaran.master.feature.tripplan.entity.transaction.ActivityLeadTimeEntity;
@@ -24,7 +30,9 @@ import java.util.stream.Collectors;
 public class JmpService {
 
     private final JmpRepository repository;
-    private static final com.fasterxml.jackson.databind.ObjectMapper OBJECT_MAPPER = new com.fasterxml.jackson.databind.ObjectMapper();
+    private final RouteRepository routeRepository;
+    private final PlaningService planingService;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public JmpEntity saveJmp(JmpRequestDto dto) {
         boolean isJmpNew = dto.getId() == null || dto.getId().trim().isEmpty();
@@ -367,5 +375,204 @@ public class JmpService {
     @Transactional(value = "jmp-dbTransactionManager", readOnly = true)
     public Page<JmpTripPlanEntity> getTripPlanPage(SearchInput input) {
         return repository.findTripPlanPage(input);
+    }
+
+    @Transactional(value = "jmp-dbTransactionManager", readOnly = true)
+    public JmpResponseDto getJmpById(String id) {
+        JmpEntity jmp = repository.findJmpById(id);
+        if (jmp == null) {
+            throw new ApiException(404, "Jmp not found with id: " + id);
+        }
+
+        // 1. Fetch units and trip plans
+        List<JmpUnitEntity> units = repository.findUnitsByJmpId(id);
+        List<JmpTripPlanEntity> tripPlans = repository.findTripPlansByJmpId(id);
+
+        if (tripPlans.isEmpty()) {
+            JmpResponseDto response = new JmpResponseDto();
+            response.setId(jmp.getId());
+            response.setCustomerId(jmp.getCustomerId());
+            response.setCustomer(jmp.getCustomer());
+            response.setConsigneeId(jmp.getConsigneeId());
+            response.setConsignee(jmp.getConsignee());
+            response.setCommercialRoute(jmp.getCommercialRoute());
+            response.setReferenceNo(jmp.getReferenceNo());
+            response.setTitle(jmp.getTitle());
+            response.setDescription(jmp.getDescription());
+            response.setStatus(jmp.getStatus());
+            response.setIsNotificationGlobal(jmp.getIsNotificationGlobal());
+            response.setCreatedAt(jmp.getCreatedAt());
+            response.setCreatedBy(jmp.getCreatedBy());
+            response.setUpdatedAt(jmp.getUpdatedAt());
+            response.setUpdatedBy(jmp.getUpdatedBy());
+            response.setUnits(units);
+            response.setTripPlans(Collections.emptyList());
+            return response;
+        }
+
+        // 2. Fetch everything related to trip plans in batch
+        List<String> tripPlanIds = tripPlans.stream().map(JmpTripPlanEntity::getId).collect(Collectors.toList());
+        
+        List<JmpSeaEntity> seas = repository.findSeaByTripPlanIds(tripPlanIds);
+        List<JmpAirEntity> airs = repository.findAirByTripPlanIds(tripPlanIds);
+        List<JmpDriverEntity> drivers = repository.findDriversByTripPlanIds(tripPlanIds);
+        List<JmpExtraCostEntity> extraCosts = repository.findExtraCostsByTripPlanIds(tripPlanIds);
+        List<JmpRoutePointEntity> routePoints = repository.findRoutePointsByTripPlanIds(tripPlanIds);
+        List<JmpRouteSegmentEntity> routeSegments = repository.findRouteSegmentsByTripPlanIds(tripPlanIds);
+
+        // 3. Fetch activities for route points
+        List<JmpActivityEntity> activities = Collections.emptyList();
+        if (!routePoints.isEmpty()) {
+            List<String> routePointIds = routePoints.stream().map(JmpRoutePointEntity::getId).collect(Collectors.toList());
+            activities = repository.findActivitiesByRoutePointIds(routePointIds);
+        }
+
+        // 4. Fetch units for route segments
+        List<JmpRouteSegmentUnitEntity> segmentUnits = Collections.emptyList();
+        if (!routeSegments.isEmpty()) {
+            List<String> routeSegmentIds = routeSegments.stream().map(JmpRouteSegmentEntity::getId).collect(Collectors.toList());
+            segmentUnits = repository.findSegmentUnitsBySegmentIds(routeSegmentIds);
+        }
+
+        // 4.1 Batch fetch POIs referenced by route points to get their coordinates
+        List<String> poiIds = routePoints.stream()
+                .map(JmpRoutePointEntity::getPoiId)
+                .filter(poiId -> poiId != null && !poiId.trim().isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+        List<PoiEntity> pois = routeRepository.findPoisByIdsNative(poiIds);
+        Map<String, PoiEntity> poiMap = pois.stream().collect(Collectors.toMap(PoiEntity::getId, p -> p, (p1, p2) -> p1));
+
+        // 5. Build lookup maps for fast mapping in memory
+        Map<String, JmpSeaEntity> seaMap = seas.stream()
+                .collect(Collectors.toMap(JmpSeaEntity::getJmpTripPlanId, s -> s, (s1, s2) -> s1));
+                
+        Map<String, JmpAirEntity> airMap = airs.stream()
+                .collect(Collectors.toMap(JmpAirEntity::getJmpTripPlanId, a -> a, (a1, a2) -> a1));
+                
+        Map<String, List<JmpDriverEntity>> driversMap = drivers.stream()
+                .collect(Collectors.groupingBy(JmpDriverEntity::getJmpTripPlanId));
+                
+        Map<String, List<JmpExtraCostEntity>> extraCostsMap = extraCosts.stream()
+                .collect(Collectors.groupingBy(JmpExtraCostEntity::getJmpTripPlanId));
+                
+        Map<String, List<JmpRoutePointEntity>> routePointsMap = routePoints.stream()
+                .collect(Collectors.groupingBy(JmpRoutePointEntity::getJmpTripPlanId));
+                
+        Map<String, List<JmpRouteSegmentEntity>> routeSegmentsMap = routeSegments.stream()
+                .collect(Collectors.groupingBy(JmpRouteSegmentEntity::getJmpTripPlanId));
+
+        Map<String, List<JmpActivityEntity>> activitiesMap = activities.stream()
+                .collect(Collectors.groupingBy(JmpActivityEntity::getJmpRoutePointId));
+
+        Map<String, List<JmpRouteSegmentUnitEntity>> segmentUnitsMap = segmentUnits.stream()
+                .collect(Collectors.groupingBy(JmpRouteSegmentUnitEntity::getJmpRouteSegmentId));
+
+        // 6. Map to DTOs
+        JmpResponseDto response = new JmpResponseDto();
+        response.setId(jmp.getId());
+        response.setCustomerId(jmp.getCustomerId());
+        response.setCustomer(jmp.getCustomer());
+        response.setConsigneeId(jmp.getConsigneeId());
+        response.setConsignee(jmp.getConsignee());
+        response.setCommercialRoute(jmp.getCommercialRoute());
+        response.setReferenceNo(jmp.getReferenceNo());
+        response.setTitle(jmp.getTitle());
+        response.setDescription(jmp.getDescription());
+        response.setStatus(jmp.getStatus());
+        response.setIsNotificationGlobal(jmp.getIsNotificationGlobal());
+        response.setCreatedAt(jmp.getCreatedAt());
+        response.setCreatedBy(jmp.getCreatedBy());
+        response.setUpdatedAt(jmp.getUpdatedAt());
+        response.setUpdatedBy(jmp.getUpdatedBy());
+        response.setUnits(units);
+
+        List<JmpResponseDto.TripPlanResponseDto> tripPlanDtos = tripPlans.stream().map(tp -> {
+            JmpResponseDto.TripPlanResponseDto tpDto = new JmpResponseDto.TripPlanResponseDto();
+            tpDto.setId(tp.getId());
+            tpDto.setJmpId(tp.getJmpId());
+            tpDto.setRouteId(tp.getRouteId());
+            tpDto.setSeqno(tp.getSeqno());
+            tpDto.setTransportMode(tp.getTransportMode());
+            tpDto.setRemarks(tp.getRemarks());
+            tpDto.setCreatedAt(tp.getCreatedAt());
+
+            tpDto.setSea(seaMap.get(tp.getId()));
+            tpDto.setAir(airMap.get(tp.getId()));
+            tpDto.setDrivers(driversMap.getOrDefault(tp.getId(), Collections.emptyList()));
+            tpDto.setExtraCosts(extraCostsMap.getOrDefault(tp.getId(), Collections.emptyList()));
+
+            // Map route points
+            List<JmpRoutePointEntity> points = routePointsMap.getOrDefault(tp.getId(), Collections.emptyList());
+            List<JmpResponseDto.RoutePointResponseDto> pointDtos = points.stream().map(rp -> {
+                JmpResponseDto.RoutePointResponseDto rpDto = new JmpResponseDto.RoutePointResponseDto();
+                rpDto.setId(rp.getId());
+                rpDto.setJmpTripPlanId(rp.getJmpTripPlanId());
+                rpDto.setRoutePointId(rp.getRoutePointId());
+                rpDto.setPoiId(rp.getPoiId());
+                rpDto.setSeqno(rp.getSeqno());
+                rpDto.setAlias(rp.getAlias());
+                rpDto.setAddress(rp.getAddress());
+                rpDto.setIsCustom(rp.getIsCustom());
+                
+                // Deserialize paths JSON
+                if (rp.getPaths() != null && !rp.getPaths().trim().isEmpty()) {
+                    try {
+                        rpDto.setPaths(OBJECT_MAPPER.readValue(rp.getPaths(), Object.class));
+                    } catch (Exception e) {
+                        rpDto.setPaths(rp.getPaths()); // fallback to raw string if parsing fails
+                    }
+                }
+
+                // Enrich route point with proximity hazards
+                PoiEntity poi = poiMap.get(rp.getPoiId());
+                if (poi != null && poi.getLat() != null && poi.getLng() != null) {
+                    rpDto.setHazards(routeRepository.findHazardsByPoi(poi.getLat(), poi.getLng(), 50.0));
+                } else {
+                    rpDto.setHazards(Collections.emptyList());
+                }
+                
+                rpDto.setActivities(activitiesMap.getOrDefault(rp.getId(), Collections.emptyList()));
+                return rpDto;
+            }).collect(Collectors.toList());
+            tpDto.setRoutePoints(pointDtos);
+ 
+            // Map route details (segments)
+            List<JmpRouteSegmentEntity> segments = routeSegmentsMap.getOrDefault(tp.getId(), Collections.emptyList());
+            List<JmpResponseDto.RouteDetailResponseDto> segmentDtos = segments.stream().map(seg -> {
+                JmpResponseDto.RouteDetailResponseDto rdDto = new JmpResponseDto.RouteDetailResponseDto();
+                rdDto.setId(seg.getId());
+                rdDto.setJmpTripPlanId(seg.getJmpTripPlanId());
+                rdDto.setStartRoutePointId(seg.getStartRoutePointId());
+                rdDto.setEndRoutePointId(seg.getEndRoutePointId());
+                rdDto.setSeqno(seg.getSeqno());
+                rdDto.setRemarks(seg.getRemarks());
+                rdDto.setUnits(segmentUnitsMap.getOrDefault(seg.getId(), Collections.emptyList()));
+
+                // Enrich segment with hazards along the road polyline path
+                JmpRoutePointEntity endPoint = points.stream()
+                        .filter(p -> p.getId().equals(seg.getEndRoutePointId()))
+                        .findFirst().orElse(null);
+
+                if (endPoint != null && endPoint.getPaths() != null) {
+                    String lineString = planingService.convertPathsToLineString(endPoint.getPaths());
+                    if (lineString != null) {
+                        rdDto.setHazards(routeRepository.findHazardsByLineString(lineString));
+                    } else {
+                        rdDto.setHazards(Collections.emptyList());
+                    }
+                } else {
+                    rdDto.setHazards(Collections.emptyList());
+                }
+
+                return rdDto;
+            }).collect(Collectors.toList());
+            tpDto.setRouteDetails(segmentDtos);
+
+            return tpDto;
+        }).collect(Collectors.toList());
+
+        response.setTripPlans(tripPlanDtos);
+        return response;
     }
 }
