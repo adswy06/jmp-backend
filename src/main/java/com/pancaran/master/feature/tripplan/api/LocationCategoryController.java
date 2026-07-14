@@ -14,7 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/location-categories")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 @Tag(name = "Location Categories & Activities", description = "Endpoints for retrieving location categories and their activities")
 public class LocationCategoryController {
 

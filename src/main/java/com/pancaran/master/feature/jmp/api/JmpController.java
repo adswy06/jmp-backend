@@ -21,7 +21,7 @@ import org.springdoc.core.annotations.ParameterObject;
 @RestController
 @RequestMapping("/api/jmp")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 @Tag(name = "JMP Transactions", description = "Endpoints for creating and updating JMP orders and mapping trip plans")
 public class JmpController {
 

@@ -177,4 +177,223 @@ public class RegionJdbcRepository {
             return new ArrayList<>();
         }
     }
+
+    public List<Object[]> findProvinces(String name) {
+        String sql = "select kode_prov, nama_provinsi, area_km2 from wilayah.provinsi";
+        List<Object> params = new ArrayList<>();
+        if (name != null && !name.trim().isEmpty()) {
+            sql += " where upper(nama_provinsi) like ?";
+            params.add("%" + name.trim().toUpperCase() + "%");
+        }
+        sql += " order by kode_prov";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_prov"),
+            rs.getString("nama_provinsi"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, params.toArray());
+    }
+
+    public List<Object[]> findRegencies(String provinceCode, String name) {
+        String sql = "select kode_kab, nama_kabupaten, kode_prov, area_km2 from wilayah.kabupaten where 1=1";
+        List<Object> params = new ArrayList<>();
+        if (provinceCode != null && !provinceCode.trim().isEmpty()) {
+            sql += " and kode_prov = ?";
+            params.add(provinceCode);
+        }
+        if (name != null && !name.trim().isEmpty()) {
+            sql += " and upper(nama_kabupaten) like ?";
+            params.add("%" + name.trim().toUpperCase() + "%");
+        }
+        sql += " order by kode_kab";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_kab"),
+            rs.getString("nama_kabupaten"),
+            rs.getString("kode_prov"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, params.toArray());
+    }
+
+    public List<Object[]> findDistrictsByRegencyCodes(List<String> regencyCodes) {
+        if (regencyCodes == null || regencyCodes.isEmpty()) return Collections.emptyList();
+        String placeholders = regencyCodes.stream().map(c -> "?").collect(Collectors.joining(","));
+        String sql = "select kode_kec, nama_kecamatan, kode_kab, area_km2 from wilayah.kecamatan where kode_kab in (" + placeholders + ") order by kode_kec";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_kec"),
+            rs.getString("nama_kecamatan"),
+            rs.getString("kode_kab"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, regencyCodes.toArray());
+    }
+
+    public List<Object[]> findVillagesByDistrictCodes(List<String> districtCodes) {
+        if (districtCodes == null || districtCodes.isEmpty()) return Collections.emptyList();
+        String placeholders = districtCodes.stream().map(c -> "?").collect(Collectors.joining(","));
+        String sql = "select kode_desa, nama_desa, kode_kec, area_km2 from wilayah.desa where kode_kec in (" + placeholders + ") order by kode_desa";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_desa"),
+            rs.getString("nama_desa"),
+            rs.getString("kode_kec"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, districtCodes.toArray());
+    }
+
+    public List<Object[]> findProvinceByCode(String code) {
+        String sql = "select kode_prov, nama_provinsi, area_km2 from wilayah.provinsi where kode_prov = ?";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_prov"),
+            rs.getString("nama_provinsi"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, code);
+    }
+
+    public long countProvinces(String search) {
+        String sql = "select count(*) from wilayah.provinsi";
+        List<Object> params = new ArrayList<>();
+        if (search != null && !search.trim().isEmpty()) {
+            sql += " where upper(nama_provinsi) like ?";
+            params.add("%" + search.trim().toUpperCase() + "%");
+        }
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, params.toArray());
+        return count != null ? count : 0L;
+    }
+
+    public List<Object[]> findProvincesPaginated(String search, int offset, int limit) {
+        String sql = "select kode_prov, nama_provinsi, area_km2 from wilayah.provinsi";
+        List<Object> params = new ArrayList<>();
+        if (search != null && !search.trim().isEmpty()) {
+            sql += " where upper(nama_provinsi) like ?";
+            params.add("%" + search.trim().toUpperCase() + "%");
+        }
+        sql += " order by kode_prov limit ? offset ?";
+        params.add(limit);
+        params.add(offset);
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_prov"),
+            rs.getString("nama_provinsi"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, params.toArray());
+    }
+
+    public long countRegencies(String search) {
+        String sql = "select count(*) from wilayah.kabupaten";
+        List<Object> params = new ArrayList<>();
+        if (search != null && !search.trim().isEmpty()) {
+            sql += " where upper(nama_kabupaten) like ?";
+            params.add("%" + search.trim().toUpperCase() + "%");
+        }
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, params.toArray());
+        return count != null ? count : 0L;
+    }
+
+    public List<Object[]> findRegenciesPaginated(String search, int offset, int limit) {
+        String sql = "select kode_kab, nama_kabupaten, kode_prov from wilayah.kabupaten";
+        List<Object> params = new ArrayList<>();
+        if (search != null && !search.trim().isEmpty()) {
+            sql += " where upper(nama_kabupaten) like ?";
+            params.add("%" + search.trim().toUpperCase() + "%");
+        }
+        sql += " order by kode_kab limit ? offset ?";
+        params.add(limit);
+        params.add(offset);
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_kab"),
+            rs.getString("nama_kabupaten"),
+            rs.getString("kode_prov")
+        }, params.toArray());
+    }
+
+    public long countDistricts(String search) {
+        String sql = "select count(*) from wilayah.kecamatan";
+        List<Object> params = new ArrayList<>();
+        if (search != null && !search.trim().isEmpty()) {
+            sql += " where upper(nama_kecamatan) like ?";
+            params.add("%" + search.trim().toUpperCase() + "%");
+        }
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, params.toArray());
+        return count != null ? count : 0L;
+    }
+
+    public List<Object[]> findDistrictsPaginated(String search, int offset, int limit) {
+        String sql = "select kode_kec, nama_kecamatan, kode_kab from wilayah.kecamatan";
+        List<Object> params = new ArrayList<>();
+        if (search != null && !search.trim().isEmpty()) {
+            sql += " where upper(nama_kecamatan) like ?";
+            params.add("%" + search.trim().toUpperCase() + "%");
+        }
+        sql += " order by kode_kec limit ? offset ?";
+        params.add(limit);
+        params.add(offset);
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_kec"),
+            rs.getString("nama_kecamatan"),
+            rs.getString("kode_kab")
+        }, params.toArray());
+    }
+
+    public long countVillages(String search) {
+        String sql = "select count(*) from wilayah.desa";
+        List<Object> params = new ArrayList<>();
+        if (search != null && !search.trim().isEmpty()) {
+            sql += " where upper(nama_desa) like ?";
+            params.add("%" + search.trim().toUpperCase() + "%");
+        }
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, params.toArray());
+        return count != null ? count : 0L;
+    }
+
+    public List<Object[]> findVillagesPaginated(String search, int offset, int limit) {
+        String sql = "select kode_desa, nama_desa, kode_kec from wilayah.desa";
+        List<Object> params = new ArrayList<>();
+        if (search != null && !search.trim().isEmpty()) {
+            sql += " where upper(nama_desa) like ?";
+            params.add("%" + search.trim().toUpperCase() + "%");
+        }
+        sql += " order by kode_desa limit ? offset ?";
+        params.add(limit);
+        params.add(offset);
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_desa"),
+            rs.getString("nama_desa"),
+            rs.getString("kode_kec")
+        }, params.toArray());
+    }
+
+    public List<Object[]> searchProvinces(String search) {
+        String sql = "select kode_prov, nama_provinsi, area_km2 from wilayah.provinsi where upper(nama_provinsi) like ? order by kode_prov";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_prov"),
+            rs.getString("nama_provinsi"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, "%" + search.trim().toUpperCase() + "%");
+    }
+
+    public List<Object[]> searchRegencies(String search) {
+        String sql = "select kode_kab, nama_kabupaten, kode_prov, area_km2 from wilayah.kabupaten where upper(nama_kabupaten) like ? order by kode_kab limit 50";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_kab"),
+            rs.getString("nama_kabupaten"),
+            rs.getString("kode_prov"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, "%" + search.trim().toUpperCase() + "%");
+    }
+
+    public List<Object[]> searchDistricts(String search) {
+        String sql = "select kode_kec, nama_kecamatan, kode_kab, area_km2 from wilayah.kecamatan where upper(nama_kecamatan) like ? order by kode_kec limit 100";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_kec"),
+            rs.getString("nama_kecamatan"),
+            rs.getString("kode_kab"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, "%" + search.trim().toUpperCase() + "%");
+    }
+
+    public List<Object[]> searchVillages(String search) {
+        String sql = "select kode_desa, nama_desa, kode_kec, area_km2 from wilayah.desa where upper(nama_desa) like ? order by kode_desa limit 200";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_desa"),
+            rs.getString("nama_desa"),
+            rs.getString("kode_kec"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+        }, "%" + search.trim().toUpperCase() + "%");
+    }
 }

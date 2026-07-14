@@ -13,7 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/pois")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 @Tag(name = "Points of Interest (POI)", description = "Endpoints for managing and querying POIs")
 public class PoiController {
 

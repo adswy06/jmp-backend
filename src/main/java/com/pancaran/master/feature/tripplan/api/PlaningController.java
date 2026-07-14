@@ -26,7 +26,7 @@ import com.pancaran.master.feature.tripplan.dto.response.RouteResponseDto;
 @RestController
 @RequestMapping("/api/planing")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 @Tag(name = "Route Planning", description = "Endpoints for creating and enriching route plans")
 public class PlaningController {
 
