@@ -7,8 +7,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import com.apik.core.data.dto.SearchInput;
 import com.pancaran.master.feature.jmp.entity.*;
-import com.pancaran.master.feature.tripplan.entity.master.CustomerEntity;
-import com.pancaran.master.feature.tripplan.entity.master.ConsigneeEntity;
+import com.pancaran.master.feature.tripplan.entity.master.CustomerView;
+import com.pancaran.master.feature.tripplan.entity.master.ConsigneeView;
 import com.pancaran.master.feature.tripplan.entity.master.ActivityEntity;
 import com.pancaran.master.feature.tripplan.entity.transaction.ActivityCostEntity;
 import com.pancaran.master.feature.tripplan.entity.transaction.ActivityLeadTimeEntity;
@@ -149,6 +149,17 @@ public class JmpRepository {
     // Master Route Propagation Helper Methods
     public RoutePointEntity findRoutePointById(String id) {
         return entityManager.find(RoutePointEntity.class, id);
+    }
+
+    public RoutePointEntity findRoutePointByRouteIdAndPoiIdAndSeqno(String routeId, String poiId, Integer seqno) {
+        List<RoutePointEntity> list = entityManager.createQuery(
+                "select rp from RoutePointEntity rp where rp.routeId = :routeId and rp.poiId = :poiId and rp.seqno = :seqno",
+                RoutePointEntity.class)
+                .setParameter("routeId", routeId)
+                .setParameter("poiId", poiId)
+                .setParameter("seqno", seqno)
+                .getResultList();
+        return list.isEmpty() ? null : list.get(0);
     }
 
     public List<ActivityEntity> findAllActivities() {
@@ -454,7 +465,7 @@ public class JmpRepository {
             j.setUpdatedAt(rs.getTimestamp("updatedat") != null ? rs.getTimestamp("updatedat").toLocalDateTime() : null);
 
             if (j.getCustomerId() != null) {
-                CustomerEntity cust = new CustomerEntity();
+                CustomerView cust = new CustomerView();
                 cust.setId(j.getCustomerId());
                 cust.setName(rs.getString("cust_name"));
                 cust.setAlias(rs.getString("cust_alias"));
@@ -472,7 +483,7 @@ public class JmpRepository {
             }
 
             if (j.getConsigneeId() != null) {
-                ConsigneeEntity cg = new ConsigneeEntity();
+                ConsigneeView cg = new ConsigneeView();
                 cg.setId(j.getConsigneeId());
                 cg.setName(rs.getString("cg_name"));
                 cg.setAlias(rs.getString("cg_alias"));

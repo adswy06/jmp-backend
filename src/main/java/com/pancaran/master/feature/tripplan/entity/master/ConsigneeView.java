@@ -3,17 +3,15 @@ package com.pancaran.master.feature.tripplan.entity.master;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.DynamicInsert;
-import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.Immutable;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "em_consignee")
+@Immutable
 @Getter
 @Setter
-@DynamicInsert
-@DynamicUpdate
-public class ConsigneeEntity {
+public class ConsigneeView {
     @Id
     private String id;
 

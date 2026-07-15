@@ -12,7 +12,7 @@ import java.util.List;
 
 @Getter
 @Setter
-@JsonPropertyOrder({"poiId", "seqNo", "alias", "address", "geofence", "activities", "paths"})
+@JsonPropertyOrder({"poiId", "seqNo", "alias", "address", "paths", "geofence", "activities"})
 public class RoutePointCreateDto implements Serializable {
     @NotBlank
     private String poiId;

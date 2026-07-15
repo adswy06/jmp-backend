@@ -1,11 +1,16 @@
 package com.pancaran.master.feature.jmp.dto;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@JsonPropertyOrder({
+    "id", "routeId", "seqno", "transportMode", "remarks",
+    "routePoints", "routeDetails", "extraCosts", "drivers", "units", "sea", "air"
+})
 public class JmpTripPlanRequestDto {
     private String id;
     private String routeId;
@@ -34,6 +39,9 @@ public class JmpTripPlanRequestDto {
     private List<RouteDetailRequestDto> routeDetails;
 
     @Data
+    @JsonPropertyOrder({
+        "id", "routePointId", "poiId", "seqno", "alias", "address", "isCustom", "paths", "activities"
+    })
     public static class RoutePointRequestDto {
         private String id;
         private String routePointId;
@@ -47,6 +55,9 @@ public class JmpTripPlanRequestDto {
     }
 
     @Data
+    @JsonPropertyOrder({
+        "id", "activityId", "activityName", "leadtime", "cost", "seqno", "remarks", "isNotification", "notes"
+    })
     public static class ActivityRequestDto {
         private String id;
         private String activityId;
@@ -60,6 +71,9 @@ public class JmpTripPlanRequestDto {
     }
 
     @Data
+    @JsonPropertyOrder({
+        "id", "name", "amount", "remarks"
+    })
     public static class ExtraCostRequestDto {
         private String id;
         private String name;
@@ -68,6 +82,9 @@ public class JmpTripPlanRequestDto {
     }
 
     @Data
+    @JsonPropertyOrder({
+        "id", "driverId", "seqno"
+    })
     public static class DriverRequestDto {
         private String id;
         private String driverId;
@@ -75,12 +92,18 @@ public class JmpTripPlanRequestDto {
     }
 
     @Data
+    @JsonPropertyOrder({
+        "id", "unitTypeId"
+    })
     public static class UnitRequestDto {
         private String id;
         private String unitTypeId;
     }
 
     @Data
+    @JsonPropertyOrder({
+        "id", "originPortId", "destinationPortId", "vesselId", "etd", "eta"
+    })
     public static class SeaRequestDto {
         private String id;
         private String originPortId;
@@ -91,6 +114,9 @@ public class JmpTripPlanRequestDto {
     }
 
     @Data
+    @JsonPropertyOrder({
+        "id", "originAirportId", "destinationAirportId", "airline", "flightNo", "etd", "eta"
+    })
     public static class AirRequestDto {
         private String id;
         private String originAirportId;
@@ -102,6 +128,9 @@ public class JmpTripPlanRequestDto {
     }
  
     @Data
+    @JsonPropertyOrder({
+        "id", "seqNo", "startSeqNo", "endSeqNo", "remarks", "units"
+    })
     public static class RouteDetailRequestDto {
         private String id;
         private Integer seqNo;

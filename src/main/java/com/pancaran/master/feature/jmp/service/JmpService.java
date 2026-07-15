@@ -17,6 +17,8 @@ import com.pancaran.master.feature.tripplan.service.PlaningService;
 import com.pancaran.master.feature.tripplan.entity.transaction.RoutePointEntity;
 import com.pancaran.master.feature.tripplan.entity.transaction.ActivityCostEntity;
 import com.pancaran.master.feature.tripplan.entity.transaction.ActivityLeadTimeEntity;
+import com.pancaran.master.feature.tripplan.entity.transaction.RouteEntity;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +50,25 @@ public class JmpService {
         jmp.setCreatedBy("SYSTEM");
         jmp.setIsNotificationGlobal(dto.getIsNotificationGlobal() != null ? dto.getIsNotificationGlobal() : false);
  
+        // Validate draft route usage
+        if (dto.getStatus() != null && !"DRAFT".equalsIgnoreCase(dto.getStatus())) {
+            if (dto.getTripPlans() != null) {
+                List<String> routeIds = dto.getTripPlans().stream()
+                        .map(JmpTripPlanRequestDto::getRouteId)
+                        .filter(routeId -> routeId != null && !routeId.trim().isEmpty())
+                        .distinct()
+                        .collect(Collectors.toList());
+                if (!routeIds.isEmpty()) {
+                    List<RouteEntity> routes = routeRepository.findRoutesByIds(routeIds);
+                    for (RouteEntity route : routes) {
+                        if ("DRAFT".equalsIgnoreCase(route.getStatus())) {
+                            throw new ApiException(400, "Cannot use draft route '" + route.getName() + "' for active Journey Management Plan");
+                        }
+                    }
+                }
+            }
+        }
+
         repository.saveJmp(jmp, isJmpNew);
  
         // Save JMP level units
@@ -66,6 +87,7 @@ public class JmpService {
         Map<String, ActivityEntity> masterActivityMap = new HashMap<>();
         Map<String, ActivityCostEntity> costMap = new HashMap<>();
         Map<String, ActivityLeadTimeEntity> leadTimeMap = new HashMap<>();
+        Map<String, RoutePointEntity> masterRoutePointsMap = new HashMap<>();
 
         if (Boolean.TRUE.equals(dto.getSaveToMaster())) {
             // 1. Fetch all master activities in a single query
@@ -78,8 +100,12 @@ public class JmpService {
 
             // 2. Identify all non-custom master route points being sent in JMP
             List<String> existingRoutePointIds = new ArrayList<>();
+            List<String> routeIdsToPropagate = new ArrayList<>();
             if (dto.getTripPlans() != null) {
                 for (JmpTripPlanRequestDto tpDto : dto.getTripPlans()) {
+                    if (tpDto.getRouteId() != null && !tpDto.getRouteId().trim().isEmpty()) {
+                        routeIdsToPropagate.add(tpDto.getRouteId());
+                    }
                     if (tpDto.getRoutePoints() != null) {
                         for (JmpTripPlanRequestDto.RoutePointRequestDto rpDto : tpDto.getRoutePoints()) {
                             if (rpDto.getRoutePointId() != null && !rpDto.getRoutePointId().trim().isEmpty() && !Boolean.TRUE.equals(rpDto.getIsCustom())) {
@@ -100,6 +126,15 @@ public class JmpService {
                 List<ActivityLeadTimeEntity> preFetchedLeadTimes = repository.findActivityLeadTimesByRoutePoints(existingRoutePointIds);
                 for (ActivityLeadTimeEntity l : preFetchedLeadTimes) {
                     leadTimeMap.put(l.getRoutePointId() + "-" + l.getActivityId(), l);
+                }
+            }
+
+            // 4. Batch load all master route points for propagation (Anti N+1 query)
+            routeIdsToPropagate = routeIdsToPropagate.stream().distinct().collect(Collectors.toList());
+            if (!routeIdsToPropagate.isEmpty()) {
+                List<RoutePointEntity> allMasterRoutePoints = routeRepository.findRoutePointsByRouteIds(routeIdsToPropagate);
+                for (RoutePointEntity mrp : allMasterRoutePoints) {
+                    masterRoutePointsMap.put(mrp.getRouteId() + "-" + mrp.getPoiId() + "-" + mrp.getSeqno(), mrp);
                 }
             }
         }
@@ -199,7 +234,7 @@ public class JmpService {
                         }
  
                         if (Boolean.TRUE.equals(dto.getSaveToMaster()) && tp.getRouteId() != null) {
-                            propagateRoutePoint(tp.getRouteId(), rp);
+                            propagateRoutePoint(tp.getRouteId(), rp, masterRoutePointsMap);
                         }
  
                         repository.saveRoutePoint(rp, isRpNew);
@@ -274,24 +309,38 @@ public class JmpService {
         return jmp;
     }
 
-    private void propagateRoutePoint(String routeId, JmpRoutePointEntity rp) {
+    private void propagateRoutePoint(String routeId, JmpRoutePointEntity rp, Map<String, RoutePointEntity> masterRoutePointsMap) {
         String masterRoutePointId = rp.getRoutePointId();
         
         if (masterRoutePointId == null || masterRoutePointId.trim().isEmpty() || Boolean.TRUE.equals(rp.getIsCustom())) {
-            RoutePointEntity masterRp = new RoutePointEntity();
-            
-            masterRoutePointId = CoreUtil.createUUID();
-            masterRp.setId(masterRoutePointId);
-            masterRp.setRouteId(routeId);
-            masterRp.setPoiId(rp.getPoiId());
-            masterRp.setSeqno(rp.getSeqno());
-            masterRp.setAlias(rp.getAlias());
-            masterRp.setAddress(rp.getAddress());
-            masterRp.setPaths(rp.getPaths());
-            masterRp.setIszone(false);
-            
-            repository.saveMasterRoutePoint(masterRp);
-            rp.setRoutePointId(masterRoutePointId); 
+            RoutePointEntity existingMasterRp = null;
+            if (masterRoutePointId == null || masterRoutePointId.trim().isEmpty()) {
+                String key = routeId + "-" + rp.getPoiId() + "-" + rp.getSeqno();
+                existingMasterRp = masterRoutePointsMap.get(key);
+            }
+
+            if (existingMasterRp != null) {
+                masterRoutePointId = existingMasterRp.getId();
+                existingMasterRp.setAlias(rp.getAlias());
+                existingMasterRp.setAddress(rp.getAddress());
+                existingMasterRp.setPaths(rp.getPaths());
+                repository.saveMasterRoutePoint(existingMasterRp);
+                rp.setRoutePointId(masterRoutePointId);
+            } else {
+                RoutePointEntity masterRp = new RoutePointEntity();
+                masterRoutePointId = CoreUtil.createUUID();
+                masterRp.setId(masterRoutePointId);
+                masterRp.setRouteId(routeId);
+                masterRp.setPoiId(rp.getPoiId());
+                masterRp.setSeqno(rp.getSeqno());
+                masterRp.setAlias(rp.getAlias());
+                masterRp.setAddress(rp.getAddress());
+                masterRp.setPaths(rp.getPaths());
+                masterRp.setIszone(false);
+                
+                repository.saveMasterRoutePoint(masterRp);
+                rp.setRoutePointId(masterRoutePointId); 
+            }
         } else {
             // Update existing master point's sequence if it has been shifted
             RoutePointEntity masterRp = repository.findRoutePointById(masterRoutePointId);

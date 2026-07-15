@@ -36,6 +36,10 @@ public class PlaningService {
     public RouteResponseDto planRoute(RouteCreateRequestDto request) {
         RouteAggregate aggregate = mapper.toAggregate(request);
 
+        if (aggregate.getRoute() != null && "DRAFT".equalsIgnoreCase(aggregate.getRoute().getStatus())) {
+            aggregate.getRoute().setActive(false);
+        }
+
         enricher.enrich(aggregate);
 
         processor.process(aggregate);

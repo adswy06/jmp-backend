@@ -4,12 +4,14 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.io.Serializable;
 import java.util.List;
 
 
 @Getter
 @Setter
+@JsonPropertyOrder({"seqNo", "startSeqNo", "endSeqNo", "remarks", "units"})
 public class RouteSegmentDto implements Serializable {
     @NotNull
     private Integer seqNo;

@@ -6,11 +6,16 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.io.Serializable;
 import java.util.List;
 
 @Getter
 @Setter
+@JsonPropertyOrder({
+    "name", "alias", "status", "distanceKm", "journeyLeadTime", "basicCost",
+    "routePoints", "routeDetails"
+})
 public class RouteCreateRequestDto implements Serializable {
     @NotBlank
     private String name;
@@ -24,4 +29,5 @@ public class RouteCreateRequestDto implements Serializable {
     @Valid
     @NotEmpty
     private List<RouteSegmentDto> routeDetails;
+    private String status;
 }

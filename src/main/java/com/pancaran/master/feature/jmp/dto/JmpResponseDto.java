@@ -1,8 +1,8 @@
 package com.pancaran.master.feature.jmp.dto;
 
 import com.pancaran.master.feature.jmp.entity.*;
-import com.pancaran.master.feature.tripplan.entity.master.CustomerEntity;
-import com.pancaran.master.feature.tripplan.entity.master.ConsigneeEntity;
+import com.pancaran.master.feature.tripplan.entity.master.CustomerView;
+import com.pancaran.master.feature.tripplan.entity.master.ConsigneeView;
 import com.pancaran.master.feature.tripplan.dto.response.RouteResponseDto.RoadHazardResponseDto;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
@@ -10,12 +10,17 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@JsonPropertyOrder({
+    "id", "customerId", "customer", "consigneeId", "consignee", "commercialRoute",
+    "referenceNo", "title", "description", "status", "isNotificationGlobal",
+    "createdAt", "createdBy", "updatedAt", "updatedBy", "units", "tripPlans"
+})
 public class JmpResponseDto {
     private String id;
     private String customerId;
-    private CustomerEntity customer;
+    private CustomerView customer;
     private String consigneeId;
-    private ConsigneeEntity consignee;
+    private ConsigneeView consignee;
     private String commercialRoute;
     private String referenceNo;
     private String title;
@@ -53,6 +58,10 @@ public class JmpResponseDto {
     }
 
     @Data
+    @JsonPropertyOrder({
+        "id", "jmpTripPlanId", "routePointId", "poiId", "seqno", "alias", "address",
+        "isCustom", "sourceType", "paths", "activities", "hazards"
+    })
     public static class RoutePointResponseDto {
         private String id;
         private String jmpTripPlanId;
@@ -69,6 +78,10 @@ public class JmpResponseDto {
     }
 
     @Data
+    @JsonPropertyOrder({
+        "id", "jmpTripPlanId", "startRoutePointId", "endRoutePointId", "seqno",
+        "remarks", "units", "hazards"
+    })
     public static class RouteDetailResponseDto {
         private String id;
         private String jmpTripPlanId;

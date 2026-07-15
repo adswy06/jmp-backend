@@ -16,6 +16,11 @@ public class PlaningProcessor {
     private final RouteRepository routeRepository;
 
     public void process(RouteAggregate aggregate) {
+        if (aggregate.getRoute() != null && "DRAFT".equalsIgnoreCase(aggregate.getRoute().getStatus())) {
+            // Bypass strict route point requirements for draft routes
+            return;
+        }
+
         List<RoutePointEntity> points = aggregate.getRoutePoints();
         if (points == null || points.size() < 2) {
             throw new ApiException(400, "Route must have at least 2 points (Start and End).");

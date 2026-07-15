@@ -1,8 +1,8 @@
 package com.pancaran.master.feature.jmp.entity;
 
 import com.pancaran.master.feature.tripplan.entity.BaseAuditEntity;
-import com.pancaran.master.feature.tripplan.entity.master.CustomerEntity;
-import com.pancaran.master.feature.tripplan.entity.master.ConsigneeEntity;
+import com.pancaran.master.feature.tripplan.entity.master.CustomerView;
+import com.pancaran.master.feature.tripplan.entity.master.ConsigneeView;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,14 +24,14 @@ public class JmpEntity extends BaseAuditEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", insertable = false, updatable = false)
-    private CustomerEntity customer;
+    private CustomerView customer;
 
     @Column(name = "consignee_id")
     private String consigneeId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "consignee_id", insertable = false, updatable = false)
-    private ConsigneeEntity consignee;
+    private ConsigneeView consignee;
 
     @Column(name = "commercial_route")
     private String commercialRoute;

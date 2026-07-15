@@ -29,4 +29,6 @@ public class RouteEntity extends BaseMasterEntity {
 
     @Column(name = "basic_cost")
     private Double basicCost;
+
+    private String status = "PUBLISHED";
 }

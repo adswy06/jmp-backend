@@ -1,9 +1,15 @@
 package com.pancaran.master.feature.jmp.dto;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import java.util.List;
 
 @Data
+@JsonPropertyOrder({
+    "id", "customerId", "consigneeId", "commercialRoute", "referenceNo",
+    "title", "description", "status", "saveToMaster", "isNotificationGlobal",
+    "units", "tripPlans"
+})
 public class JmpRequestDto {
     private String id;
     private String customerId;

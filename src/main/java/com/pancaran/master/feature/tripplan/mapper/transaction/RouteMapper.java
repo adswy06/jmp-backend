@@ -17,6 +17,7 @@ public class RouteMapper {
         entity.setDistanceKm(dto.getDistanceKm());
         entity.setJourneyLeadTime(dto.getJourneyLeadTime());
         entity.setBasicCost(dto.getBasicCost());
+        entity.setStatus(dto.getStatus() != null ? dto.getStatus() : "PUBLISHED");
 
         return entity;
     }

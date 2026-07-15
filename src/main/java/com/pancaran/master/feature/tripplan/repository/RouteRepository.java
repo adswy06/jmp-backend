@@ -340,7 +340,7 @@ public class RouteRepository {
     }
 
     public RouteEntity findRouteById(String id) {
-        String sql = "select id, alias, name, distance_km, journey_leadtime, basic_cost, isactive, isdeleted, deletedat, createdby, createdat, updatedby, updatedat from m_route where id = ? and isdeleted = false";
+        String sql = "select id, alias, name, distance_km, journey_leadtime, basic_cost, status, isactive, isdeleted, deletedat, createdby, createdat, updatedby, updatedat from m_route where id = ? and isdeleted = false";
         List<RouteEntity> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
             RouteEntity r = new RouteEntity();
             r.setId(rs.getString("id"));
@@ -349,6 +349,7 @@ public class RouteRepository {
             r.setDistanceKm(rs.getObject("distance_km") != null ? rs.getDouble("distance_km") : null);
             r.setJourneyLeadTime(rs.getObject("journey_leadtime") != null ? rs.getInt("journey_leadtime") : null);
             r.setBasicCost(rs.getObject("basic_cost") != null ? rs.getDouble("basic_cost") : null);
+            r.setStatus(rs.getString("status"));
             r.setActive(rs.getObject("isactive", Boolean.class));
             r.setDeleted(rs.getObject("isdeleted", Boolean.class));
             r.setDeletedAt(rs.getTimestamp("deletedat") != null ? rs.getTimestamp("deletedat").toLocalDateTime() : null);
@@ -359,6 +360,32 @@ public class RouteRepository {
             return r;
         }, id);
         return results.isEmpty() ? null : results.get(0);
+    }
+
+    public List<RouteEntity> findRoutesByIds(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String placeholders = ids.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = "select id, alias, name, distance_km, journey_leadtime, basic_cost, status, isactive, isdeleted, deletedat, createdby, createdat, updatedby, updatedat from m_route where id in (" + placeholders + ") and isdeleted = false";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            RouteEntity r = new RouteEntity();
+            r.setId(rs.getString("id"));
+            r.setAlias(rs.getString("alias"));
+            r.setName(rs.getString("name"));
+            r.setDistanceKm(rs.getObject("distance_km") != null ? rs.getDouble("distance_km") : null);
+            r.setJourneyLeadTime(rs.getObject("journey_leadtime") != null ? rs.getInt("journey_leadtime") : null);
+            r.setBasicCost(rs.getObject("basic_cost") != null ? rs.getDouble("basic_cost") : null);
+            r.setStatus(rs.getString("status"));
+            r.setActive(rs.getObject("isactive", Boolean.class));
+            r.setDeleted(rs.getObject("isdeleted", Boolean.class));
+            r.setDeletedAt(rs.getTimestamp("deletedat") != null ? rs.getTimestamp("deletedat").toLocalDateTime() : null);
+            r.setCreatedBy(rs.getString("createdby"));
+            r.setCreatedAt(rs.getTimestamp("createdat") != null ? rs.getTimestamp("createdat").toLocalDateTime() : null);
+            r.setUpdatedBy(rs.getString("updatedby"));
+            r.setUpdatedAt(rs.getTimestamp("updatedat") != null ? rs.getTimestamp("updatedat").toLocalDateTime() : null);
+            return r;
+        }, ids.toArray());
     }
 
     public List<RoutePointEntity> findRoutePointsByRouteId(String routeId) {
@@ -376,6 +403,25 @@ public class RouteRepository {
             rp.setIszone(rs.getObject("iszone", Boolean.class));
             return rp;
         }, routeId);
+    }
+
+    public List<RoutePointEntity> findRoutePointsByRouteIds(List<String> routeIds) {
+        if (routeIds == null || routeIds.isEmpty()) return Collections.emptyList();
+        String placeholders = routeIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = "select id, ref_id_route, checksum, poi_id, seqno, alias, address, paths, iszone from m_route_point where ref_id_route in (" + placeholders + ") order by seqno asc";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            RoutePointEntity rp = new RoutePointEntity();
+            rp.setId(rs.getString("id"));
+            rp.setRouteId(rs.getString("ref_id_route"));
+            rp.setChecksum(rs.getString("checksum"));
+            rp.setPoiId(rs.getString("poi_id"));
+            rp.setSeqno(rs.getObject("seqno", Integer.class));
+            rp.setAlias(rs.getString("alias"));
+            rp.setAddress(rs.getString("address"));
+            rp.setPaths(rs.getString("paths"));
+            rp.setIszone(rs.getObject("iszone", Boolean.class));
+            return rp;
+        }, routeIds.toArray());
     }
 
     public List<GeofenceEntity> findGeofencesByRouteId(String routeId) {
