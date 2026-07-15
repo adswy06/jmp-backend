@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 @Builder
 public class ActivityResponseDto {
     private String id;
-    private String categoryName;
     private String name;
     private BigDecimal cost;
     private Integer leadTime;

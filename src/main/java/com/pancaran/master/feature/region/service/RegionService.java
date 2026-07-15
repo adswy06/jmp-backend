@@ -1,5 +1,6 @@
 package com.pancaran.master.feature.region.service;
 
+import com.pancaran.master.common.dto.ScrollResponseDto;
 import com.pancaran.master.feature.region.dto.*;
 import com.pancaran.master.feature.region.repository.RegionJdbcRepository;
 import lombok.RequiredArgsConstructor;
@@ -87,7 +88,7 @@ public class RegionService {
     }
 
     @Transactional(value = "wilayah-dbTransactionManager", readOnly = true)
-    public List<RegionTreeDto> getRegionTree(String code, String search, int page, int size) {
+    public ScrollResponseDto<RegionTreeDto> getRegionTree(String code, String search, int page, int size) {
         List<Object[]> provinces = Collections.emptyList();
         List<Object[]> regencies = Collections.emptyList();
         List<Object[]> districts = Collections.emptyList();
@@ -123,128 +124,150 @@ public class RegionService {
                 kecCodes.add((String) v[2]);
                 kabCodes.add(((String) v[2]).substring(0, 4));
                 provCodes.add(((String) v[2]).substring(0, 2));
-            }
+            }            // 2.5 Descendant Expansion with Safety Limit Safeguard
+            java.util.Set<String> directDesaCodes = matchedDesa.stream().map(v -> (String) v[0]).collect(Collectors.toSet());
+            java.util.Set<String> directKecCodes = matchedKec.stream().map(c -> (String) c[0]).collect(Collectors.toSet());
+            java.util.Set<String> directKabCodes = matchedKab.stream().map(k -> (String) k[0]).collect(Collectors.toSet());
+            java.util.Set<String> directProvCodes = matchedProv.stream().map(p -> (String) p[0]).collect(Collectors.toSet());
 
-            // Descendant Expansion to load children under matched nodes:
-            
-            // If province matched, expand and load all its regencies
-            if (!matchedProv.isEmpty()) {
-                java.util.Set<String> matchedProvCodes = matchedProv.stream().map(p -> (String) p[0]).collect(Collectors.toSet());
-                List<Object[]> regenciesUnderProvs = jdbcRepository.findRegencies(null, null).stream()
-                        .filter(r -> matchedProvCodes.contains(r[2]))
-                        .collect(Collectors.toList());
+            java.util.Set<String> provToExpand = new java.util.HashSet<>(directProvCodes);
+            List<Object[]> regenciesUnderProvs = Collections.emptyList();
+            if (!provToExpand.isEmpty()) {
+                regenciesUnderProvs = jdbcRepository.findRegenciesByProvinceCodes(new java.util.ArrayList<>(provToExpand));
                 for (Object[] r : regenciesUnderProvs) {
                     kabCodes.add((String) r[0]);
                 }
             }
 
-            // If regency matched (directly or from province), expand all its districts
-            java.util.Set<String> kabToExpand = new java.util.HashSet<>();
-            for (Object[] k : matchedKab) {
-                kabToExpand.add((String) k[0]);
+            java.util.Set<String> kabToExpand = new java.util.HashSet<>(directKabCodes);
+            for (Object[] r : regenciesUnderProvs) {
+                kabToExpand.add((String) r[0]);
             }
-            for (Object[] p : matchedProv) {
-                List<Object[]> regenciesUnderProv = jdbcRepository.findRegencies((String) p[0], null);
-                for (Object[] r : regenciesUnderProv) {
-                    kabToExpand.add((String) r[0]);
-                }
-            }
+            List<Object[]> districtsUnderKabs = Collections.emptyList();
             if (!kabToExpand.isEmpty()) {
-                List<Object[]> districtsUnderKabs = jdbcRepository.findDistrictsByRegencyCodes(new java.util.ArrayList<>(kabToExpand));
+                districtsUnderKabs = jdbcRepository.findDistrictsByRegencyCodes(new java.util.ArrayList<>(kabToExpand));
                 for (Object[] d : districtsUnderKabs) {
                     kecCodes.add((String) d[0]);
                 }
             }
 
-            // If district matched, expand all its villages
-            java.util.Set<String> kecToExpand = new java.util.HashSet<>();
-            for (Object[] c : matchedKec) {
-                kecToExpand.add((String) c[0]);
+            java.util.Set<String> kecToExpand = new java.util.HashSet<>(directKecCodes);
+            for (Object[] d : districtsUnderKabs) {
+                kecToExpand.add((String) d[0]);
             }
-            if (!kabToExpand.isEmpty()) {
-                List<Object[]> districtsUnderKabs = jdbcRepository.findDistrictsByRegencyCodes(new java.util.ArrayList<>(kabToExpand));
-                for (Object[] d : districtsUnderKabs) {
-                    kecToExpand.add((String) d[0]);
-                }
-            }
+            List<Object[]> villagesUnderKecs = Collections.emptyList();
             if (!kecToExpand.isEmpty()) {
-                List<Object[]> villagesUnderKecs = jdbcRepository.findVillagesByDistrictCodes(new java.util.ArrayList<>(kecToExpand));
+                villagesUnderKecs = jdbcRepository.findVillagesByDistrictCodes(new java.util.ArrayList<>(kecToExpand));
                 for (Object[] v : villagesUnderKecs) {
                     desaCodes.add((String) v[0]);
                 }
             }
 
-            // 3. Load only the matched nodes and their direct ancestors
+            // Apply 500 nodes safety limit check
+            if (desaCodes.size() > 500) {
+                desaCodes = new java.util.HashSet<>(directDesaCodes);
+                kecCodes.clear();
+                kabCodes.clear();
+                provCodes.clear();
+
+                for (Object[] p : matchedProv) {
+                    provCodes.add((String) p[0]);
+                }
+                for (Object[] k : matchedKab) {
+                    kabCodes.add((String) k[0]);
+                    provCodes.add((String) k[2]);
+                }
+                for (Object[] c : matchedKec) {
+                    kecCodes.add((String) c[0]);
+                    kabCodes.add((String) c[2]);
+                    provCodes.add(((String) c[2]).substring(0, 2));
+                }
+                for (Object[] v : matchedDesa) {
+                    kecCodes.add((String) v[2]);
+                    kabCodes.add(((String) v[2]).substring(0, 4));
+                    provCodes.add(((String) v[2]).substring(0, 2));
+                }
+            }
+
+            // 3. Load only the matched nodes using optimized database queries
             if (!provCodes.isEmpty()) {
                 provinces = jdbcRepository.findProvinces(null).stream()
                         .filter(p -> provCodes.contains(p[0]))
                         .collect(Collectors.toList());
             }
             if (!kabCodes.isEmpty()) {
-                regencies = jdbcRepository.findRegencies(null, null).stream()
-                        .filter(r -> kabCodes.contains(r[0]))
-                        .collect(Collectors.toList());
+                regencies = jdbcRepository.findRegenciesByCodes(new java.util.ArrayList<>(kabCodes));
             }
             if (!kecCodes.isEmpty()) {
-                districts = jdbcRepository.findDistrictsByRegencyCodes(new java.util.ArrayList<>(kabCodes)).stream()
-                        .filter(d -> kecCodes.contains(d[0]))
-                        .collect(Collectors.toList());
+                districts = jdbcRepository.findDistrictsByCodes(new java.util.ArrayList<>(kecCodes));
             }
             if (!desaCodes.isEmpty()) {
-                villages = jdbcRepository.findVillagesByDistrictCodes(new java.util.ArrayList<>(kecCodes)).stream()
-                        .filter(v -> desaCodes.contains(v[0]))
-                        .collect(Collectors.toList());
+                villages = jdbcRepository.findVillagesByCodes(new java.util.ArrayList<>(desaCodes));
             }
         } else if (code != null && !code.trim().isEmpty()) {
             // Lazy load child nodes under a specific code!
             String cleanCode = code.trim();
+            List<RegionTreeDto> items = Collections.emptyList();
             if (cleanCode.length() == 2) {
                 // Return only Regencies under this Province (mapped as parent-child tree)
                 regencies = jdbcRepository.findRegencies(cleanCode, null);
                 // Return them as root nodes for the response
-                return regencies.stream()
+                items = regencies.stream()
                         .map(r -> RegionTreeDto.builder()
                                 .code((String) r[0])
                                 .name((String) r[1])
                                 .areaKm2((Double) r[3])
+                                .lat((Double) r[4])
+                                .lng((Double) r[5])
                                 .districs(new java.util.ArrayList<>())
                                 .build())
                         .collect(Collectors.toList());
             } else if (cleanCode.length() == 4) {
                 // Return only Districts under this Regency
                 districts = jdbcRepository.findDistrictsByRegencyCodes(List.of(cleanCode));
-                return districts.stream()
+                items = districts.stream()
                         .map(d -> RegionTreeDto.builder()
                                 .code((String) d[0])
                                 .name((String) d[1])
                                 .areaKm2((Double) d[3])
+                                .lat((Double) d[4])
+                                .lng((Double) d[5])
                                 .vilages(new java.util.ArrayList<>())
                                 .build())
                         .collect(Collectors.toList());
             } else if (cleanCode.length() == 6) {
                 // Return only Villages under this District
                 villages = jdbcRepository.findVillagesByDistrictCodes(List.of(cleanCode));
-                return villages.stream()
+                items = villages.stream()
                         .map(v -> RegionTreeDto.builder()
                                 .code((String) v[0])
                                 .name((String) v[1])
                                 .areaKm2((Double) v[3])
+                                .lat((Double) v[4])
+                                .lng((Double) v[5])
                                 .build())
                         .collect(Collectors.toList());
             }
-            return Collections.emptyList();
+            return new ScrollResponseDto<>(items, false);
         } else {
             // Default load Provinces paginated (lazy load root)
             int offset = page * size;
-            provinces = jdbcRepository.findProvincesPaginated(null, offset, size);
-            return provinces.stream()
+            provinces = jdbcRepository.findProvincesPaginated(null, offset, size + 1);
+            boolean hasNext = provinces.size() > size;
+            if (hasNext) {
+                provinces = provinces.subList(0, size);
+            }
+            List<RegionTreeDto> items = provinces.stream()
                     .map(p -> RegionTreeDto.builder()
                             .code((String) p[0])
                             .name((String) p[1])
                             .areaKm2((Double) p[2])
+                            .lat((Double) p[3])
+                            .lng((Double) p[4])
                             .regency(new java.util.ArrayList<>())
                             .build())
                     .collect(Collectors.toList());
+            return new ScrollResponseDto<>(items, hasNext);
         }
 
         // Build tree for search results
@@ -254,6 +277,8 @@ public class RegionService {
                 .code((String) v[0])
                 .name((String) v[1])
                 .areaKm2((Double) v[3])
+                .lat((Double) v[4])
+                .lng((Double) v[5])
                 .build()
         ));
 
@@ -263,6 +288,8 @@ public class RegionService {
                 .code((String) d[0])
                 .name((String) d[1])
                 .areaKm2((Double) d[3])
+                .lat((Double) d[4])
+                .lng((Double) d[5])
                 .vilages(new java.util.ArrayList<>())
                 .build()
         ));
@@ -273,6 +300,8 @@ public class RegionService {
                 .code((String) r[0])
                 .name((String) r[1])
                 .areaKm2((Double) r[3])
+                .lat((Double) r[4])
+                .lng((Double) r[5])
                 .districs(new java.util.ArrayList<>())
                 .build()
         ));
@@ -283,6 +312,8 @@ public class RegionService {
                 .code((String) p[0])
                 .name((String) p[1])
                 .areaKm2((Double) p[2])
+                .lat((Double) p[3])
+                .lng((Double) p[4])
                 .regency(new java.util.ArrayList<>())
                 .build()
         ));
@@ -311,10 +342,11 @@ public class RegionService {
             }
         }
 
-        return provinces.stream()
+        List<RegionTreeDto> items = provinces.stream()
                 .map(p -> provinceMap.get((String) p[0]))
                 .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toList());
+        return new ScrollResponseDto<>(items, false);
     }
 
     public String getRegionGeom(String code) {
@@ -332,13 +364,18 @@ public class RegionService {
     }
 
     @Transactional(value = "wilayah-dbTransactionManager", readOnly = true)
-    public List<com.pancaran.master.common.dto.DropdownResponseDto<String>> getRegionDropdownCommon(String search, int page, int size) {
-        List<RegionDropdownDto> list = getRegionDropdown(search, page, size);
-        return list.stream()
+    public ScrollResponseDto<com.pancaran.master.common.dto.DropdownResponseDto<String>> getRegionDropdownCommon(String search, int page, int size) {
+        List<RegionDropdownDto> list = getRegionDropdown(search, page, size + 1);
+        boolean hasNext = list.size() > size;
+        if (hasNext) {
+            list = list.subList(0, size);
+        }
+        List<com.pancaran.master.common.dto.DropdownResponseDto<String>> items = list.stream()
                 .map(item -> new com.pancaran.master.common.dto.DropdownResponseDto<>(
                         item.getCode(),
                         item.getName() + " (" + item.getType() + ")"
                 ))
                 .collect(Collectors.toList());
+        return new ScrollResponseDto<>(items, hasNext);
     }
 }

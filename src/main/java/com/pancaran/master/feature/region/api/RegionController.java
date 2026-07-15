@@ -2,6 +2,7 @@ package com.pancaran.master.feature.region.api;
 
 import com.pancaran.master.common.APIResponse;
 import com.pancaran.master.common.ApiException;
+import com.pancaran.master.common.dto.ScrollResponseDto;
 import com.pancaran.master.feature.region.dto.*;
 import com.pancaran.master.feature.region.service.RegionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,7 +23,7 @@ public class RegionController {
 
     @GetMapping
     @Operation(summary = "Get Region Tree", description = "Retrieves the hierarchical tree of administrative regions without geometries. Can be filtered by code, search query, and supports paginated scroll.")
-    public ResponseEntity<APIResponse<List<RegionTreeDto>>> getRegionTree(
+    public ResponseEntity<APIResponse<ScrollResponseDto<RegionTreeDto>>> getRegionTree(
             @RequestParam(value = "code", required = false) String code,
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "page", defaultValue = "0") int page,

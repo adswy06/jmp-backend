@@ -4,6 +4,7 @@ import com.pancaran.master.feature.jmp.entity.*;
 import com.pancaran.master.feature.tripplan.entity.master.CustomerEntity;
 import com.pancaran.master.feature.tripplan.entity.master.ConsigneeEntity;
 import com.pancaran.master.feature.tripplan.dto.response.RouteResponseDto.RoadHazardResponseDto;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +31,10 @@ public class JmpResponseDto {
     private List<TripPlanResponseDto> tripPlans;
 
     @Data
+    @JsonPropertyOrder({
+        "id", "jmpId", "routeId", "seqno", "transportMode", "remarks", "createdAt",
+        "routePoints", "routeDetails", "extraCosts", "drivers", "sea", "air"
+    })
     public static class TripPlanResponseDto {
         private String id;
         private String jmpId;
@@ -57,6 +62,7 @@ public class JmpResponseDto {
         private String alias;
         private String address;
         private Boolean isCustom;
+        private String sourceType;
         private Object paths;
         private List<JmpActivityEntity> activities;
         private List<RoadHazardResponseDto> hazards;

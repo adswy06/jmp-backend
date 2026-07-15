@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/location-categories")
+@RequestMapping("/api/")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 @Tag(name = "Location Categories & Activities", description = "Endpoints for retrieving location categories and their activities")
@@ -21,7 +21,7 @@ public class LocationCategoryController {
     private final LocationCategoryService service;
 
     // Endpoint untuk mendapatkan daftar kategori lokasi beserta aktivitasnya (header-detail)
-    @GetMapping
+    @GetMapping("location-categories")
     @Operation(summary = "Get Hierarchical Location Categories", description = "Retrieves a hierarchical list of location categories, each with its nested list of activities (header-detail). Supports optional filtering by category ID.")
     public ResponseEntity<APIResponse<List<LocationCategoryWithActivitiesDto>>> getLocationCategories(
             @RequestParam(value = "categoryId", required = false) String categoryId) {
@@ -29,7 +29,7 @@ public class LocationCategoryController {
     }
 
     // Endpoint untuk mendapatkan daftar detail aktivitas saja secara flat
-    @GetMapping("/activities")
+    @GetMapping("activities")
     @Operation(summary = "Get Flat Activities List", description = "Retrieves a flat list of activities, including their default cost and leadTime configurations. Supports filtering by category ID and/or activity name.")
     public ResponseEntity<APIResponse<List<ActivityResponseDto>>> getActivities(
             @RequestParam(value = "categoryId", required = false) String categoryId,

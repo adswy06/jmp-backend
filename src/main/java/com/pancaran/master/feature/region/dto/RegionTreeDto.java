@@ -17,6 +17,8 @@ public class RegionTreeDto implements Serializable {
     private String code;
     private String name;
     private Double areaKm2;
+    private Double lat;
+    private Double lng;
     private List<RegionTreeDto> regency;
     private List<RegionTreeDto> districs;
     private List<RegionTreeDto> vilages;

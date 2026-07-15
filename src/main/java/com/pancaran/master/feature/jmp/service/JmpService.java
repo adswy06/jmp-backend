@@ -435,11 +435,23 @@ public class JmpService {
         }
 
         // 4.1 Batch fetch POIs referenced by route points to get their coordinates
-        List<String> poiIds = routePoints.stream()
-                .map(JmpRoutePointEntity::getPoiId)
-                .filter(poiId -> poiId != null && !poiId.trim().isEmpty())
-                .distinct()
-                .collect(Collectors.toList());
+        List<String> poiIds = new ArrayList<>();
+        for (JmpRoutePointEntity rp : routePoints) {
+            if (rp.getPoiId() != null && !rp.getPoiId().trim().isEmpty()) {
+                poiIds.add(rp.getPoiId());
+            }
+        }
+        for (JmpTripPlanEntity tp : tripPlans) {
+            if (tp.getRouteId() != null) {
+                List<com.pancaran.master.feature.tripplan.entity.transaction.RoutePointEntity> mRps = routeRepository.findRoutePointsByRouteId(tp.getRouteId());
+                for (com.pancaran.master.feature.tripplan.entity.transaction.RoutePointEntity mrp : mRps) {
+                    if (mrp.getPoiId() != null && !mrp.getPoiId().trim().isEmpty()) {
+                        poiIds.add(mrp.getPoiId());
+                    }
+                }
+            }
+        }
+        poiIds = poiIds.stream().distinct().collect(Collectors.toList());
         List<PoiEntity> pois = routeRepository.findPoisByIdsNative(poiIds);
         Map<String, PoiEntity> poiMap = pois.stream().collect(Collectors.toMap(PoiEntity::getId, p -> p, (p1, p2) -> p1));
 
@@ -504,37 +516,157 @@ public class JmpService {
 
             // Map route points
             List<JmpRoutePointEntity> points = routePointsMap.getOrDefault(tp.getId(), Collections.emptyList());
-            List<JmpResponseDto.RoutePointResponseDto> pointDtos = points.stream().map(rp -> {
+            
+            // 1. Fetch master route points if routeId is set
+            List<RoutePointEntity> masterPoints = Collections.emptyList();
+            if (tp.getRouteId() != null) {
+                masterPoints = routeRepository.findRoutePointsByRouteId(tp.getRouteId());
+            }
+
+            // 2. Fetch master activities details if we have master points
+            List<String> masterPointIds = masterPoints.stream().map(RoutePointEntity::getId).collect(Collectors.toList());
+            List<ActivityLeadTimeEntity> mLeadTimes = Collections.emptyList();
+            List<ActivityCostEntity> mActivityCosts = Collections.emptyList();
+            if (!masterPointIds.isEmpty()) {
+                mLeadTimes = routeRepository.findLeadTimesByRoutePointIds(masterPointIds);
+                mActivityCosts = routeRepository.findActivityCostsByRoutePointIds(masterPointIds);
+            }
+            Map<String, List<ActivityLeadTimeEntity>> mLeadTimesMap = mLeadTimes.stream()
+                    .collect(Collectors.groupingBy(ActivityLeadTimeEntity::getRoutePointId));
+            Map<String, List<ActivityCostEntity>> mActivityCostsMap = mActivityCosts.stream()
+                    .collect(Collectors.groupingBy(ActivityCostEntity::getRoutePointId));
+
+            List<String> mActIds = new ArrayList<>();
+            mLeadTimes.forEach(lt -> { if (lt.getActivityId() != null) mActIds.add(lt.getActivityId()); });
+            mActivityCosts.forEach(ac -> { if (ac.getActivityId() != null) mActIds.add(ac.getActivityId()); });
+            List<ActivityEntity> mActivities = Collections.emptyList();
+            if (!mActIds.isEmpty()) {
+                mActivities = routeRepository.findActivitiesByIds(mActIds.stream().distinct().collect(Collectors.toList()));
+            }
+            Map<String, ActivityEntity> mActivitiesMap = mActivities.stream()
+                    .collect(Collectors.toMap(ActivityEntity::getId, java.util.function.Function.identity(), (a1, a2) -> a1));
+
+            List<JmpResponseDto.RoutePointResponseDto> pointDtos = new ArrayList<>();
+
+            // A. Process Master Points (overridden or default fallback)
+            for (RoutePointEntity mp : masterPoints) {
+                JmpRoutePointEntity txRp = points.stream()
+                        .filter(p -> mp.getId().equals(p.getRoutePointId()))
+                        .findFirst().orElse(null);
+
                 JmpResponseDto.RoutePointResponseDto rpDto = new JmpResponseDto.RoutePointResponseDto();
-                rpDto.setId(rp.getId());
-                rpDto.setJmpTripPlanId(rp.getJmpTripPlanId());
-                rpDto.setRoutePointId(rp.getRoutePointId());
-                rpDto.setPoiId(rp.getPoiId());
-                rpDto.setSeqno(rp.getSeqno());
-                rpDto.setAlias(rp.getAlias());
-                rpDto.setAddress(rp.getAddress());
-                rpDto.setIsCustom(rp.getIsCustom());
-                
-                // Deserialize paths JSON
-                if (rp.getPaths() != null && !rp.getPaths().trim().isEmpty()) {
-                    try {
-                        rpDto.setPaths(OBJECT_MAPPER.readValue(rp.getPaths(), Object.class));
-                    } catch (Exception e) {
-                        rpDto.setPaths(rp.getPaths()); // fallback to raw string if parsing fails
+                if (txRp != null) {
+                    // Overridden: Use transaction data
+                    rpDto.setId(txRp.getId());
+                    rpDto.setJmpTripPlanId(txRp.getJmpTripPlanId());
+                    rpDto.setRoutePointId(txRp.getRoutePointId());
+                    rpDto.setPoiId(txRp.getPoiId());
+                    rpDto.setSeqno(txRp.getSeqno());
+                    rpDto.setAlias(txRp.getAlias());
+                    rpDto.setAddress(txRp.getAddress());
+                    rpDto.setIsCustom(txRp.getIsCustom());
+                    rpDto.setSourceType("OVERRIDDEN");
+
+                    if (txRp.getPaths() != null && !txRp.getPaths().trim().isEmpty()) {
+                        try {
+                            rpDto.setPaths(OBJECT_MAPPER.readValue(txRp.getPaths(), Object.class));
+                        } catch (Exception e) {
+                            rpDto.setPaths(txRp.getPaths());
+                        }
                     }
+                    rpDto.setActivities(activitiesMap.getOrDefault(txRp.getId(), Collections.emptyList()));
+                } else {
+                    // Default template point: Use master data
+                    rpDto.setId("master-" + mp.getId());
+                    rpDto.setJmpTripPlanId(tp.getId());
+                    rpDto.setRoutePointId(mp.getId());
+                    rpDto.setPoiId(mp.getPoiId());
+                    rpDto.setSeqno(mp.getSeqno());
+                    rpDto.setAlias(mp.getAlias());
+                    rpDto.setAddress(mp.getAddress());
+                    rpDto.setIsCustom(false);
+                    rpDto.setSourceType("TEMPLATE");
+
+                    if (mp.getPaths() != null && !mp.getPaths().trim().isEmpty()) {
+                        try {
+                            rpDto.setPaths(OBJECT_MAPPER.readValue(mp.getPaths(), Object.class));
+                        } catch (Exception e) {
+                            rpDto.setPaths(mp.getPaths());
+                        }
+                    }
+
+                    // Map master activities to transient entities
+                    List<ActivityLeadTimeEntity> lts = mLeadTimesMap.getOrDefault(mp.getId(), Collections.emptyList());
+                    List<ActivityCostEntity> acs = mActivityCostsMap.getOrDefault(mp.getId(), Collections.emptyList());
+                    Set<String> actIdsForPoint = new LinkedHashSet<>();
+                    lts.forEach(lt -> actIdsForPoint.add(lt.getActivityId()));
+                    acs.forEach(ac -> actIdsForPoint.add(ac.getActivityId()));
+
+                    List<JmpActivityEntity> mockActs = actIdsForPoint.stream().map(actId -> {
+                        ActivityEntity actDetail = mActivitiesMap.get(actId);
+                        JmpActivityEntity mockAct = new JmpActivityEntity();
+                        mockAct.setId("master-act-" + actId);
+                        mockAct.setJmpRoutePointId("master-" + mp.getId());
+                        mockAct.setActivityId(actId);
+                        mockAct.setActivityName(actDetail != null ? actDetail.getName() : "");
+                        mockAct.setLeadtime(lts.stream().filter(lt -> actId.equals(lt.getActivityId())).map(ActivityLeadTimeEntity::getLeadtime).findFirst().orElse(null));
+                        mockAct.setCost(acs.stream().filter(ac -> actId.equals(ac.getActivityId())).map(ac -> java.math.BigDecimal.valueOf(ac.getAmount())).findFirst().orElse(null));
+                        mockAct.setIsNotification(false);
+                        return mockAct;
+                    }).collect(Collectors.toList());
+                    rpDto.setActivities(mockActs);
                 }
 
                 // Enrich route point with proximity hazards
-                PoiEntity poi = poiMap.get(rp.getPoiId());
+                PoiEntity poi = poiMap.get(rpDto.getPoiId());
                 if (poi != null && poi.getLat() != null && poi.getLng() != null) {
                     rpDto.setHazards(routeRepository.findHazardsByPoi(poi.getLat(), poi.getLng(), 50.0));
                 } else {
                     rpDto.setHazards(Collections.emptyList());
                 }
-                
-                rpDto.setActivities(activitiesMap.getOrDefault(rp.getId(), Collections.emptyList()));
-                return rpDto;
-            }).collect(Collectors.toList());
+
+                pointDtos.add(rpDto);
+            }
+
+            // B. Process Custom/Additional Points from transaction (not matching any master point)
+            for (JmpRoutePointEntity txRp : points) {
+                if (txRp.getRoutePointId() == null || !masterPointIds.contains(txRp.getRoutePointId())) {
+                    JmpResponseDto.RoutePointResponseDto rpDto = new JmpResponseDto.RoutePointResponseDto();
+                    rpDto.setId(txRp.getId());
+                    rpDto.setJmpTripPlanId(txRp.getJmpTripPlanId());
+                    rpDto.setRoutePointId(txRp.getRoutePointId());
+                    rpDto.setPoiId(txRp.getPoiId());
+                    rpDto.setSeqno(txRp.getSeqno());
+                    rpDto.setAlias(txRp.getAlias());
+                    rpDto.setAddress(txRp.getAddress());
+                    rpDto.setIsCustom(txRp.getIsCustom());
+                    rpDto.setSourceType("CUSTOM");
+
+                    if (txRp.getPaths() != null && !txRp.getPaths().trim().isEmpty()) {
+                        try {
+                            rpDto.setPaths(OBJECT_MAPPER.readValue(txRp.getPaths(), Object.class));
+                        } catch (Exception e) {
+                            rpDto.setPaths(txRp.getPaths());
+                        }
+                    }
+                    rpDto.setActivities(activitiesMap.getOrDefault(txRp.getId(), Collections.emptyList()));
+
+                    PoiEntity poi = poiMap.get(rpDto.getPoiId());
+                    if (poi != null && poi.getLat() != null && poi.getLng() != null) {
+                        rpDto.setHazards(routeRepository.findHazardsByPoi(poi.getLat(), poi.getLng(), 50.0));
+                    } else {
+                        rpDto.setHazards(Collections.emptyList());
+                    }
+
+                    pointDtos.add(rpDto);
+                }
+            }
+
+            // C. Sort merged points by sequence number
+            pointDtos.sort(java.util.Comparator.comparing(
+                    JmpResponseDto.RoutePointResponseDto::getSeqno, 
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())));
+
             tpDto.setRoutePoints(pointDtos);
  
             // Map route details (segments)
@@ -549,8 +681,8 @@ public class JmpService {
                 rdDto.setRemarks(seg.getRemarks());
                 rdDto.setUnits(segmentUnitsMap.getOrDefault(seg.getId(), Collections.emptyList()));
 
-                // Enrich segment with hazards along the road polyline path
-                JmpRoutePointEntity endPoint = points.stream()
+                // Enrich segment with hazards along the road polyline path from the merged pointDtos
+                JmpResponseDto.RoutePointResponseDto endPoint = pointDtos.stream()
                         .filter(p -> p.getId().equals(seg.getEndRoutePointId()))
                         .findFirst().orElse(null);
 

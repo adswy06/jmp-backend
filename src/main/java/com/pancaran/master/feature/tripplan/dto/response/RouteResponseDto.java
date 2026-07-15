@@ -2,10 +2,12 @@ package com.pancaran.master.feature.tripplan.dto.response;
 
 import com.pancaran.master.feature.tripplan.entity.master.*;
 import com.pancaran.master.feature.tripplan.entity.transaction.*;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import java.util.List;
 
 @Data
+@JsonPropertyOrder({"route", "routePoints", "routeDetails"})
 public class RouteResponseDto {
     private RouteEntity route;
     private List<RoutePointResponseDto> routePoints;

@@ -179,7 +179,7 @@ public class RegionJdbcRepository {
     }
 
     public List<Object[]> findProvinces(String name) {
-        String sql = "select kode_prov, nama_provinsi, area_km2 from wilayah.provinsi";
+        String sql = "select kode_prov, nama_provinsi, area_km2, ST_Y(ST_Centroid(geom)) as lat, ST_X(ST_Centroid(geom)) as lng from wilayah.provinsi";
         List<Object> params = new ArrayList<>();
         if (name != null && !name.trim().isEmpty()) {
             sql += " where upper(nama_provinsi) like ?";
@@ -189,12 +189,14 @@ public class RegionJdbcRepository {
         return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
             rs.getString("kode_prov"),
             rs.getString("nama_provinsi"),
-            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null,
+            rs.getObject("lat") != null ? ((Number) rs.getObject("lat")).doubleValue() : null,
+            rs.getObject("lng") != null ? ((Number) rs.getObject("lng")).doubleValue() : null
         }, params.toArray());
     }
 
     public List<Object[]> findRegencies(String provinceCode, String name) {
-        String sql = "select kode_kab, nama_kabupaten, kode_prov, area_km2 from wilayah.kabupaten where 1=1";
+        String sql = "select kode_kab, nama_kabupaten, kode_prov, area_km2, ST_Y(ST_Centroid(geom)) as lat, ST_X(ST_Centroid(geom)) as lng from wilayah.kabupaten where 1=1";
         List<Object> params = new ArrayList<>();
         if (provinceCode != null && !provinceCode.trim().isEmpty()) {
             sql += " and kode_prov = ?";
@@ -209,31 +211,37 @@ public class RegionJdbcRepository {
             rs.getString("kode_kab"),
             rs.getString("nama_kabupaten"),
             rs.getString("kode_prov"),
-            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null,
+            rs.getObject("lat") != null ? ((Number) rs.getObject("lat")).doubleValue() : null,
+            rs.getObject("lng") != null ? ((Number) rs.getObject("lng")).doubleValue() : null
         }, params.toArray());
     }
 
     public List<Object[]> findDistrictsByRegencyCodes(List<String> regencyCodes) {
         if (regencyCodes == null || regencyCodes.isEmpty()) return Collections.emptyList();
         String placeholders = regencyCodes.stream().map(c -> "?").collect(Collectors.joining(","));
-        String sql = "select kode_kec, nama_kecamatan, kode_kab, area_km2 from wilayah.kecamatan where kode_kab in (" + placeholders + ") order by kode_kec";
+        String sql = "select kode_kec, nama_kecamatan, kode_kab, area_km2, ST_Y(ST_Centroid(geom)) as lat, ST_X(ST_Centroid(geom)) as lng from wilayah.kecamatan where kode_kab in (" + placeholders + ") order by kode_kec";
         return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
             rs.getString("kode_kec"),
             rs.getString("nama_kecamatan"),
             rs.getString("kode_kab"),
-            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null,
+            rs.getObject("lat") != null ? ((Number) rs.getObject("lat")).doubleValue() : null,
+            rs.getObject("lng") != null ? ((Number) rs.getObject("lng")).doubleValue() : null
         }, regencyCodes.toArray());
     }
 
     public List<Object[]> findVillagesByDistrictCodes(List<String> districtCodes) {
         if (districtCodes == null || districtCodes.isEmpty()) return Collections.emptyList();
         String placeholders = districtCodes.stream().map(c -> "?").collect(Collectors.joining(","));
-        String sql = "select kode_desa, nama_desa, kode_kec, area_km2 from wilayah.desa where kode_kec in (" + placeholders + ") order by kode_desa";
+        String sql = "select kode_desa, nama_desa, kode_kec, area_km2, ST_Y(ST_Centroid(geom)) as lat, ST_X(ST_Centroid(geom)) as lng from wilayah.desa where kode_kec in (" + placeholders + ") order by kode_desa";
         return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
             rs.getString("kode_desa"),
             rs.getString("nama_desa"),
             rs.getString("kode_kec"),
-            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null,
+            rs.getObject("lat") != null ? ((Number) rs.getObject("lat")).doubleValue() : null,
+            rs.getObject("lng") != null ? ((Number) rs.getObject("lng")).doubleValue() : null
         }, districtCodes.toArray());
     }
 
@@ -258,7 +266,7 @@ public class RegionJdbcRepository {
     }
 
     public List<Object[]> findProvincesPaginated(String search, int offset, int limit) {
-        String sql = "select kode_prov, nama_provinsi, area_km2 from wilayah.provinsi";
+        String sql = "select kode_prov, nama_provinsi, area_km2, ST_Y(ST_Centroid(geom)) as lat, ST_X(ST_Centroid(geom)) as lng from wilayah.provinsi";
         List<Object> params = new ArrayList<>();
         if (search != null && !search.trim().isEmpty()) {
             sql += " where upper(nama_provinsi) like ?";
@@ -270,7 +278,9 @@ public class RegionJdbcRepository {
         return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
             rs.getString("kode_prov"),
             rs.getString("nama_provinsi"),
-            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null,
+            rs.getObject("lat") != null ? ((Number) rs.getObject("lat")).doubleValue() : null,
+            rs.getObject("lng") != null ? ((Number) rs.getObject("lng")).doubleValue() : null
         }, params.toArray());
     }
 
@@ -395,5 +405,61 @@ public class RegionJdbcRepository {
             rs.getString("kode_kec"),
             rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null
         }, "%" + search.trim().toUpperCase() + "%");
+    }
+
+    public List<Object[]> findRegenciesByProvinceCodes(List<String> provinceCodes) {
+        if (provinceCodes == null || provinceCodes.isEmpty()) return Collections.emptyList();
+        String placeholders = provinceCodes.stream().map(c -> "?").collect(Collectors.joining(","));
+        String sql = "select kode_kab, nama_kabupaten, kode_prov, area_km2, ST_Y(ST_Centroid(geom)) as lat, ST_X(ST_Centroid(geom)) as lng from wilayah.kabupaten where kode_prov in (" + placeholders + ") order by kode_kab";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_kab"),
+            rs.getString("nama_kabupaten"),
+            rs.getString("kode_prov"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null,
+            rs.getObject("lat") != null ? ((Number) rs.getObject("lat")).doubleValue() : null,
+            rs.getObject("lng") != null ? ((Number) rs.getObject("lng")).doubleValue() : null
+        }, provinceCodes.toArray());
+    }
+
+    public List<Object[]> findRegenciesByCodes(List<String> codes) {
+        if (codes == null || codes.isEmpty()) return Collections.emptyList();
+        String placeholders = codes.stream().map(c -> "?").collect(Collectors.joining(","));
+        String sql = "select kode_kab, nama_kabupaten, kode_prov, area_km2, ST_Y(ST_Centroid(geom)) as lat, ST_X(ST_Centroid(geom)) as lng from wilayah.kabupaten where kode_kab in (" + placeholders + ") order by kode_kab";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_kab"),
+            rs.getString("nama_kabupaten"),
+            rs.getString("kode_prov"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null,
+            rs.getObject("lat") != null ? ((Number) rs.getObject("lat")).doubleValue() : null,
+            rs.getObject("lng") != null ? ((Number) rs.getObject("lng")).doubleValue() : null
+        }, codes.toArray());
+    }
+
+    public List<Object[]> findDistrictsByCodes(List<String> codes) {
+        if (codes == null || codes.isEmpty()) return Collections.emptyList();
+        String placeholders = codes.stream().map(c -> "?").collect(Collectors.joining(","));
+        String sql = "select kode_kec, nama_kecamatan, kode_kab, area_km2, ST_Y(ST_Centroid(geom)) as lat, ST_X(ST_Centroid(geom)) as lng from wilayah.kecamatan where kode_kec in (" + placeholders + ") order by kode_kec";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_kec"),
+            rs.getString("nama_kecamatan"),
+            rs.getString("kode_kab"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null,
+            rs.getObject("lat") != null ? ((Number) rs.getObject("lat")).doubleValue() : null,
+            rs.getObject("lng") != null ? ((Number) rs.getObject("lng")).doubleValue() : null
+        }, codes.toArray());
+    }
+
+    public List<Object[]> findVillagesByCodes(List<String> codes) {
+        if (codes == null || codes.isEmpty()) return Collections.emptyList();
+        String placeholders = codes.stream().map(c -> "?").collect(Collectors.joining(","));
+        String sql = "select kode_desa, nama_desa, kode_kec, area_km2, ST_Y(ST_Centroid(geom)) as lat, ST_X(ST_Centroid(geom)) as lng from wilayah.desa where kode_desa in (" + placeholders + ") order by kode_desa";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
+            rs.getString("kode_desa"),
+            rs.getString("nama_desa"),
+            rs.getString("kode_kec"),
+            rs.getObject("area_km2") != null ? rs.getDouble("area_km2") : null,
+            rs.getObject("lat") != null ? ((Number) rs.getObject("lat")).doubleValue() : null,
+            rs.getObject("lng") != null ? ((Number) rs.getObject("lng")).doubleValue() : null
+        }, codes.toArray());
     }
 }

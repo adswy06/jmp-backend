@@ -82,7 +82,6 @@ public class LocationCategoryService {
         if (entity == null) return null;
         return ActivityResponseDto.builder()
                 .id(entity.getId())
-                .categoryName(entity.getCategoryName())
                 .name(entity.getName())
                 .cost(entity.getCost())
                 .leadTime(entity.getLeadTime())
